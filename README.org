@@ -19,14 +19,17 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 ** Sample configuration
 
 #+BEGIN_SRC emacs-lisp
-;; Enable Cache
-(setq url-automatic-caching t)
+
+;; Monitor list of stocks
+(setq stock-tracker-list-of-stocks
+      '("0601595" "0601857"))
+
+;; Refresh stock price every 5 secs
+(setq stock-tracker-refresh-interval 5)
 
 ;; Example Key binding
-(global-set-key (kbd "C-c y") 'stock-tracker-search-at-point)
+(global-set-key (kbd "C-c s") 'stock-tracker-start)
 
 #+END_SRC
 
-*Notes*: A external Chinese word segmentation tool (e.g. [[https://github.com/fxsjy/jieba][结巴分词]]) is
-needed to enable Chinese word segmentation support. For more info, see
-[[https://github.com/xuchunyang/chinese-word-at-point.el#prerequisite][chinese-word-at-point.el#prerequisite]].
+*Notes*: Stocks listed in shanghai, prefiex stock code with '0', listed in shenzhen, prefix stock-code with '1'.
