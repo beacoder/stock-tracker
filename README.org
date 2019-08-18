@@ -32,4 +32,4 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 #+END_SRC
 
-*Notes*: Stocks listed in shanghai, prefiex stock code with '0', listed in shenzhen, prefix stock-code with '1'.
+*Notes*: Stocks listed in shanghai, prefiex stock-code with '0', listed in shenzhen, prefix stock-code with '1'.
