@@ -1,4 +1,4 @@
-;;; stock-tracker.el --- Track stock price in Emacs  -*- lexical-binding: t; -*-
+;;; stock-tracker.el --- Track stock price -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019 Huming Chen
 
@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
-;; Package-Requires: ((emacs "24") (dash "2.16.0"))
+;; Package-Requires: ((emacs "24.3") (dash "2.16.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -44,8 +44,8 @@
 
 (defgroup stock-tracker nil
   "Track stock price in Emacs."
-  :group 'tools
-  :link '(url-link :tag "Github" "https://github.com/beacoder/stock-tracker.el"))
+  :version "0.1"
+  :group 'tools)
 
 (defcustom stock-tracker-buffer-name "*stock-tracker*"
   "Result Buffer name."
@@ -113,7 +113,7 @@ If there's a string at point, use it instead of prompt."
 
 (defun stock-tracker--align-all-tables ()
   "Align all org tables."
-  (org-table-map-tables 'org-table-align))
+  (org-table-map-tables 'org-table-align t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Core Functions
