@@ -38,4 +38,4 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 ** License
 
-MIT LICENSE. Copyright (c) 2019 Huming Chen <chenhuming@gmail.com>
+[[MIT LICENSE][file:LICENSE]]. Copyright (c) 2019 Huming Chen <chenhuming@gmail.com>
