@@ -3,7 +3,7 @@
 [[http://melpa.org/#/stock-tracker][file:http://melpa.org/packages/stock-tracker-badge.svg]]
 [[http://stable.melpa.org/#/stock-tracker][file:http://stable.melpa.org/packages/stock-tracker-badge.svg]]
 
-=stock-tracer= is a simple [[https://money.163.com/stock/][Netease Stock (网易股票)]] interface for Emacs.
+=stock-tracker= is a simple [[https://money.163.com/stock/][Netease Stock (网易股票)]] interface for Emacs.
 
 ** Installation
 
