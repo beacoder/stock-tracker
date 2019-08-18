@@ -174,6 +174,22 @@ If there's a string at point, use it instead of prompt."
           (insert (stock-tracker--format-result stock)))
         (stock-tracker--align-all-tables)))))
 
+(defun stock-tracker--run-refresh-timer ()
+  "Run stock tracker refresh timer."
+  (setq stock-tracker--refresh-timer
+        (run-with-timer 0 stock-tracker-refresh-interval 'stock-tracker--refresh)))
+
+(defun stock-tracker--cancel-refresh-timer ()
+  "Cancel stock tracker refresh timer."
+  (when stock-tracker--refresh-timer
+    (cancel-timer stock-tracker--refresh-timer)
+    (setq stock-tracker--refresh-timer nil)))
+
+(defun stock-tracker--cancel-timer-on-exit ()
+  "Cancel timer when stock tracker buffer is being killed."
+  (when (eq major-mode 'stock-tracker-mode)
+    (stock-tracker--cancel-refresh-timer)))
+
 (defun stock-tracker--search (stock)
   "Search STOCK and show result in `stock-tracker-buffer-name' buffer."
   (when (and stock (not (string= "" stock)))
@@ -183,9 +199,7 @@ If there's a string at point, use it instead of prompt."
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
         (insert (stock-tracker--format-result stock))
-        (stock-tracker--align-all-tables))
-      (unless (get-buffer-window (current-buffer))
-        (switch-to-buffer-other-window stock-tracker-buffer-name)))))
+        (stock-tracker--align-all-tables)))))
 
 ;;;###autoload
 (defun stock-tracker-start (&optional stock)
@@ -196,10 +210,11 @@ If there's a string at point, use it instead of prompt."
                 (format "%s" (stock-tracker--read-from-minibuffer "stock? "))))))
   (if stock-tracker-list-of-stocks
       (progn
-        (when stock-tracker--refresh-timer (cancel-timer stock-tracker--refresh-timer))
-        (setq stock-tracker--refresh-timer
-              (run-with-timer 0 stock-tracker-refresh-interval 'stock-tracker--refresh)))
-    (stock-tracker--search stock)))
+        (stock-tracker--cancel-refresh-timer)
+        (stock-tracker--run-refresh-timer))
+    (stock-tracker--search stock))
+  (unless (get-buffer-window stock-tracker-buffer-name)
+    (switch-to-buffer-other-window stock-tracker-buffer-name)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Operations
@@ -249,6 +264,8 @@ If there's a string at point, use it instead of prompt."
         show-trailing-whitespace nil)
   (setq-local line-move-visual t)
   (setq-local view-read-only nil)
+  (remove-hook 'kill-buffer-hook 'stock-tracker--cancel-timer-on-exit)
+  (add-hook 'kill-buffer-hook 'stock-tracker--cancel-timer-on-exit)
   (run-mode-hooks))
 
 
