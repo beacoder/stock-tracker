@@ -250,6 +250,7 @@ If there's a string at point, use it instead of prompt."
     (define-key map (kbd "n") 'next-line)
     (define-key map (kbd "i") 'stock-tracker-add-stock)
     (define-key map (kbd "d") 'stock-tracker-remove-stock)
+    (define-key map (kbd "g") 'stock-tracker-start)
     map)
   "Keymap for `stock-tracker' major mode.")
 
