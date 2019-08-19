@@ -171,7 +171,7 @@ If there's a string at point, use it instead of prompt."
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
         (dolist (stock stock-tracker-list-of-stocks)
-          (insert (stock-tracker--format-result stock)))
+          (insert (or (stock-tracker--format-result stock) "")))
         (stock-tracker--align-all-tables)))))
 
 (defun stock-tracker--run-refresh-timer ()
@@ -198,7 +198,7 @@ If there's a string at point, use it instead of prompt."
         (erase-buffer)
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
-        (insert (stock-tracker--format-result stock))
+        (insert (or (stock-tracker--format-result stock) ""))
         (stock-tracker--align-all-tables)))))
 
 ;;;###autoload
@@ -206,13 +206,13 @@ If there's a string at point, use it instead of prompt."
   "Start stock-tracker, search STOCK and show result in `stock-tracker-buffer-name' buffer."
   (interactive
    (unless stock-tracker-list-of-stocks
-     (list (and (stock-tracker--read-from-minibuffer "stock? ")
-                (format "%s" (stock-tracker--read-from-minibuffer "stock? "))))))
+     (let ((string (stock-tracker--read-from-minibuffer "stock? ")))
+       (list (format "%s" string)))))
   (if stock-tracker-list-of-stocks
       (progn
         (stock-tracker--cancel-refresh-timer)
         (stock-tracker--run-refresh-timer))
-    (stock-tracker--search stock))
+    (and stock (stock-tracker--search stock)))
   (unless (get-buffer-window stock-tracker-buffer-name)
     (switch-to-buffer-other-window stock-tracker-buffer-name)))
 
