@@ -52,8 +52,8 @@
   :type 'string
   :group 'stock-tracker)
 
-(defcustom stock-tracker-refresh-interval 5
-  "Refresh stock every N SECS."
+(defcustom stock-tracker-refresh-interval 1
+  "Refresh stock every N * 10 SECS."
   :type 'integer
   :group 'stock-tracker)
 
@@ -177,7 +177,7 @@ If there's a string at point, use it instead of prompt."
 (defun stock-tracker--run-refresh-timer ()
   "Run stock tracker refresh timer."
   (setq stock-tracker--refresh-timer
-        (run-with-timer 0 stock-tracker-refresh-interval 'stock-tracker--refresh)))
+        (run-with-timer 0 (* 10 stock-tracker-refresh-interval) 'stock-tracker--refresh)))
 
 (defun stock-tracker--cancel-refresh-timer ()
   "Cancel stock tracker refresh timer."
