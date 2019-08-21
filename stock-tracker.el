@@ -126,8 +126,9 @@ If there's a string at point, use it instead of prompt."
 (defun stock-tracker--request (stock)
   "Request STOCK, return JSON as an alist if successes."
   (let (json)
-    (with-current-buffer (url-retrieve-synchronously
-                          (stock-tracker--format-request-url stock))
+    (with-current-buffer
+        (url-retrieve-synchronously
+         (stock-tracker--format-request-url stock) t nil 5)
       (set-buffer-multibyte t)
       (goto-char (point-min))
       (when (not (string-match "200 OK" (buffer-string)))
