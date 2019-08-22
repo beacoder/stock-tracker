@@ -75,11 +75,15 @@
   "Stock-Tracker result prefix.")
 
 (defconst stock-tracker--result-header
-  "| code | price | percent | updown | high | low | volume | open | yestclose |\n"
+  "|-\n| code | name | price | percent | updown | high | low | volume | open | yestclose |\n"
   "Stock-Tracker result header.")
 
+(defconst stock-tracker--result-footer
+  "|-\n"
+  "Stock-Tracker result footer.")
+
 (defconst stock-tracker--result-item-format
-  "| %s | %s | %.2f%% | %s | %s | %s | %s | %s | %s |\n"
+  "|-\n| %s | %s | %s | %.2f%% | %s | %s | %s | %s | %s | %s |\n"
   "Stock-Tracker result item format.")
 
 (defvar stock-tracker--refresh-timer nil
@@ -158,7 +162,7 @@ It defaults to a comma."
   "Format resulted STOCK information."
   (let* ((json (stock-tracker--request stock))
          (code       (assoc-default 'code       json))
-         ;; (name       (assoc-default 'name       json)) ; chinese-word failed to align
+         (name       (assoc-default 'name       json)) ; chinese-word failed to align
          (price      (assoc-default 'price      json))
          (percent    (assoc-default 'percent    json))
          (updown     (assoc-default 'updown     json))
@@ -166,26 +170,26 @@ It defaults to a comma."
          (yestclose  (assoc-default 'yestclose  json))
          (high       (assoc-default 'high       json))
          (low        (assoc-default 'low        json))
-         (volume     (assoc-default 'volume     json))
-         ;; (arrow      (assoc-default 'arrow      json)) ; chinese-word failed to align
-         )
+         (volume     (assoc-default 'volume     json)))
 
     ;; construct data for display
     (when code
       (format stock-tracker--result-item-format
-              code price (* 100 percent) updown high low (add-number-grouping volume ",") open yestclose))))
+              code name price (* 100 percent) updown high low
+              (add-number-grouping volume ",") open yestclose))))
 
 (defun stock-tracker--refresh ()
   "Refresh list of stocks."
   (when stock-tracker-list-of-stocks
-    (message (concat "Refresh list of stocks at: " (current-time-string)))
     (with-current-buffer (get-buffer-create stock-tracker-buffer-name)
       (let ((inhibit-read-only t))
         (erase-buffer)
         (stock-tracker-mode)
+        (insert (format "%s\n\n" (concat "Refresh list of stocks at: " (current-time-string))))
         (insert stock-tracker--result-header)
         (dolist (stock stock-tracker-list-of-stocks)
           (insert (or (stock-tracker--format-result stock) "")))
+        (insert stock-tracker--result-footer)
         (stock-tracker--align-all-tables)))))
 
 (defun stock-tracker--run-refresh-timer ()
@@ -213,6 +217,7 @@ It defaults to a comma."
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
         (insert (or (stock-tracker--format-result stock) ""))
+        (insert stock-tracker--result-footer)
         (stock-tracker--align-all-tables)))))
 
 ;;;###autoload
