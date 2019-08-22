@@ -83,7 +83,7 @@
   "Stock-Tracker result footer.")
 
 (defconst stock-tracker--result-item-format
-  "|-\n| %s | %s | %s | %.2f%% | %s | %s | %s | %s | %s | %s |\n"
+  "|-\n| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %s |\n"
   "Stock-Tracker result item format.")
 
 (defvar stock-tracker--refresh-timer nil
