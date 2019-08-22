@@ -66,9 +66,13 @@
 ;; Definition
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconst stock-tracker--api-url
+(defconst stock-tracker--api-url-chn
   "http://api.money.126.net/data/feed/%s"
-  "Stock-Tracker API template.")
+  "Stock-Tracker API template for stocks listed in SS, SZ, HK of China.")
+
+(defconst stock-tracker--api-url-us
+  "http://api.money.netease.com/data/feed/%s"
+  "Stock-Tracker API template for stocks listed in US.")
 
 (defconst stock-tracker--result-prefix
   "_ntes_quote_callback("
@@ -120,7 +124,7 @@ If there's a string at point, use it instead of prompt."
   (org-table-map-tables 'org-table-align t))
 
 ;;; @see https://www.emacswiki.org/emacs/AddCommasToNumbers
-(defun add-number-grouping (number &optional separator)
+(defun stock-tracker--add-number-grouping (number &optional separator)
   "Add commas to NUMBER and return it as a string.
 Optional SEPARATOR is the string to use to separate groups.
 It defaults to a comma."
@@ -138,7 +142,7 @@ It defaults to a comma."
 
 (defun stock-tracker--format-request-url (stock)
   "Format STOCK as a HTTP request URL."
-  (format stock-tracker--api-url (url-hexify-string stock)))
+  (format stock-tracker--api-url-chn (url-hexify-string stock)))
 
 (defun stock-tracker--request (stock)
   "Request STOCK, return JSON as an alist if successes."
@@ -176,7 +180,7 @@ It defaults to a comma."
     (when code
       (format stock-tracker--result-item-format
               code name price (* 100 percent) updown high low
-              (add-number-grouping volume ",") open yestclose))))
+              (stock-tracker--add-number-grouping volume ",") open yestclose))))
 
 (defun stock-tracker--refresh ()
   "Refresh list of stocks."
