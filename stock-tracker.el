@@ -75,11 +75,11 @@
   "Stock-Tracker result prefix.")
 
 (defconst stock-tracker--result-header
-  "| code | price | percent | updown | open | yestclose | high | low | volume |\n"
+  "| code | price | percent | updown | high | low | volume | open | yestclose |\n"
   "Stock-Tracker result header.")
 
 (defconst stock-tracker--result-item-format
-  "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n"
+  "| %s | %s | %.2f%% | %s | %s | %s | %s | %s | %s |\n"
   "Stock-Tracker result item format.")
 
 (defvar stock-tracker--refresh-timer nil
@@ -114,6 +114,19 @@ If there's a string at point, use it instead of prompt."
 (defun stock-tracker--align-all-tables ()
   "Align all org tables."
   (org-table-map-tables 'org-table-align t))
+
+;;; @see https://www.emacswiki.org/emacs/AddCommasToNumbers
+(defun add-number-grouping (number &optional separator)
+  "Add commas to NUMBER and return it as a string.
+Optional SEPARATOR is the string to use to separate groups.
+It defaults to a comma."
+  (let ((num (number-to-string number))
+        (op (or separator ",")))
+    (while (string-match "\\(.*[0-9]\\)\\([0-9][0-9][0-9].*\\)" num)
+      (setq num (concat
+                 (match-string 1 num) op
+                 (match-string 2 num))))
+    num))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Core Functions
@@ -160,7 +173,7 @@ If there's a string at point, use it instead of prompt."
     ;; construct data for display
     (when code
       (format stock-tracker--result-item-format
-              code price percent updown open yestclose high low volume))))
+              code price (* 100 percent) updown high low (add-number-grouping volume ",") open yestclose))))
 
 (defun stock-tracker--refresh ()
   "Refresh list of stocks."
