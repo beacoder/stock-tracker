@@ -139,7 +139,7 @@ It defaults to a comma."
 
 (defun stock-tracker--request (stock)
   "Request STOCK, return a list of JSON each as alist if successes."
-  (let (jsons response)
+  (let (jsons)
     (with-current-buffer
         (url-retrieve-synchronously
          (stock-tracker--format-request-url stock) t nil 5)
@@ -148,21 +148,21 @@ It defaults to a comma."
       (if (not (string-match "200 OK" (buffer-string)))
           (message "Problem connecting to the server")
         (re-search-forward stock-tracker--result-prefix nil 'move)
-        (setq response (json-read-from-string
-                        (buffer-substring-no-properties (point) (point-max))))
-        (dolist (one-stock response)
-          (push (cdr one-stock) jsons)))
+        (setq jsons (json-read-from-string
+                     (buffer-substring-no-properties (point) (point-max)))))
       (kill-buffer (current-buffer)))
-    (reverse jsons)))
+    jsons))
 
 (defun stock-tracker--format-result (stock)
   "Format resulted STOCK information."
   (let ((jsons (stock-tracker--request stock))
-        (result "")
+        (result "") result-list code
         symbol name price percent updown
         high low volume open yestclose)
     (dolist (json jsons)
       (setq
+       code      (symbol-name (car json))
+       json      (cdr json)
        symbol    (assoc-default 'symbol    json)
        name      (assoc-default 'name      json) ; chinese-word failed to align
        price     (assoc-default 'price     json)
@@ -176,18 +176,23 @@ It defaults to a comma."
 
       ;; construct data for display
       (when symbol
-        (setq result
-              (concat result
-                      (format stock-tracker--result-item-format
-                              symbol name price (* 100 percent) updown high low
-                              (stock-tracker--add-number-grouping volume ",") open yestclose)))))
+        (push
+         (propertize
+          (format stock-tracker--result-item-format symbol name price (* 100 percent) updown
+                  high low (stock-tracker--add-number-grouping volume ",") open yestclose)
+          'stock-code code)
+         result-list)))
+    (when result-list
+      (setq result (mapconcat 'identity (reverse result-list) "")))
     result))
 
 (defun stock-tracker--refresh ()
   "Refresh list of stocks."
   (when-let* ((has-stocks stock-tracker-list-of-stocks)
-              (stocks-string (mapconcat 'identity stock-tracker-list-of-stocks ","))
-              (recved-stocks-info (stock-tracker--format-result stocks-string)))
+              (valid-stocks (delq nil (delete-dups has-stocks)))
+              (stocks-string (mapconcat 'identity valid-stocks ","))
+              (recved-stocks-info (stock-tracker--format-result stocks-string))
+              (success-refresh (not (string= "" recved-stocks-info))))
     (with-current-buffer (get-buffer-create stock-tracker-buffer-name)
       (let ((inhibit-read-only t))
         (erase-buffer)
@@ -248,19 +253,38 @@ It defaults to a comma."
   (interactive)
   (let ((orgin-read-only buffer-read-only)
         (stock (format "%s" (read-from-minibuffer "stock? "))))
-    (unless (string= "" stock)
+    (when-let* ((is-valid-stock (not (string= "" stock)))
+                (is-not-duplicate (not (member stock stock-tracker-list-of-stocks)))
+                (recved-stocks-info (stock-tracker--format-result stock))
+                (success (not (string= "" recved-stocks-info))))
       (read-only-mode -1)
-      (insert (stock-tracker--format-result stock))
+      (insert recved-stocks-info)
       (stock-tracker--align-all-tables)
-      (when orgin-read-only (read-only-mode 1)))))
+      (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
+      (push stock stock-tracker-list-of-stocks)
+      (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks)))
+    (when orgin-read-only (read-only-mode 1))
+    (stock-tracker--refresh)))
 
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
   (interactive)
-  (let ((orgin-read-only buffer-read-only))
-    (read-only-mode -1)
-    (org-table-kill-row)
-    (when orgin-read-only (read-only-mode 1))))
+  (save-mark-and-excursion
+    (let ((orgin-read-only buffer-read-only)
+          end-of-line-pos)
+      (end-of-line)
+      (setq end-of-line-pos (point))
+      (beginning-of-line)
+      (while (and (< (point) end-of-line-pos)
+                  (not (get-text-property (point) 'stock-code)))
+        (forward-char))
+      (when-let (stock-code (get-text-property (point) 'stock-code))
+        (read-only-mode -1)
+        (org-table-kill-row)
+        (setq stock-tracker-list-of-stocks
+              (delete stock-code stock-tracker-list-of-stocks)))
+      (when orgin-read-only (read-only-mode 1))
+      (stock-tracker--refresh))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
