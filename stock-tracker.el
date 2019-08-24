@@ -76,15 +76,11 @@
   "Stock-Tracker result prefix.")
 
 (defconst stock-tracker--result-header
-  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
+  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n|-\n"
   "Stock-Tracker result header.")
 
-(defconst stock-tracker--result-footer
-  "|-\n"
-  "Stock-Tracker result footer.")
-
 (defconst stock-tracker--result-item-format
-  "|-\n| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %s |\n"
+  "| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %s |\n|-\n"
   "Stock-Tracker result item format.")
 
 (defvar stock-tracker--refresh-timer nil
@@ -199,7 +195,6 @@ It defaults to a comma."
         (insert (format "%s\n\n" (concat "Refresh list of stocks at: " (current-time-string))))
         (insert stock-tracker--result-header)
         (insert recved-stocks-info)
-        (insert stock-tracker--result-footer)
         (stock-tracker--align-all-tables)))))
 
 (defun stock-tracker--run-refresh-timer ()
@@ -227,7 +222,6 @@ It defaults to a comma."
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
         (insert (stock-tracker--format-result stock))
-        (insert stock-tracker--result-footer)
         (stock-tracker--align-all-tables)))))
 
 ;;;###autoload
