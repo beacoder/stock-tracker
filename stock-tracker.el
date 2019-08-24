@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
-;; Package-Requires: ((emacs "24.3") (dash "2.16.0"))
+;; Package-Requires: ((emacs "26") (dash "2.16.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,6 +36,7 @@
 (require 'dash)
 (require 'json)
 (require 'org)
+(require 'subr-x)
 (require 'url)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -66,20 +67,16 @@
 ;; Definition
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconst stock-tracker--api-url-chn
+(defconst stock-tracker--api-url
   "http://api.money.126.net/data/feed/%s"
-  "Stock-Tracker API template for stocks listed in SS, SZ, HK of China.")
-
-(defconst stock-tracker--api-url-us
-  "http://api.money.netease.com/data/feed/%s"
-  "Stock-Tracker API template for stocks listed in US.")
+  "Stock-Tracker API template for stocks listed in SS, SZ, HK, US.")
 
 (defconst stock-tracker--result-prefix
   "_ntes_quote_callback("
   "Stock-Tracker result prefix.")
 
 (defconst stock-tracker--result-header
-  "|-\n| code | name | price | percent | updown | high | low | volume | open | yestclose |\n"
+  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
   "Stock-Tracker result header.")
 
 (defconst stock-tracker--result-footer
@@ -142,57 +139,66 @@ It defaults to a comma."
 
 (defun stock-tracker--format-request-url (stock)
   "Format STOCK as a HTTP request URL."
-  (format stock-tracker--api-url-chn (url-hexify-string stock)))
+  (format stock-tracker--api-url (url-hexify-string stock)))
 
 (defun stock-tracker--request (stock)
-  "Request STOCK, return JSON as an alist if successes."
-  (let (json)
+  "Request STOCK, return a list of JSON each as alist if successes."
+  (let (jsons response)
     (with-current-buffer
         (url-retrieve-synchronously
          (stock-tracker--format-request-url stock) t nil 5)
       (set-buffer-multibyte t)
       (goto-char (point-min))
-      (when (not (string-match "200 OK" (buffer-string)))
-        (error "Problem connecting to the server"))
-      (re-search-forward "^$" nil 'move)
-      (re-search-forward stock-tracker--result-prefix nil 'move)
-      (setq json (json-read-from-string
-                  (buffer-substring-no-properties (point) (point-max))))
-      (when json (setq json (cdr (-flatten-n 1 json))))
+      (if (not (string-match "200 OK" (buffer-string)))
+          (message "Problem connecting to the server")
+        (re-search-forward stock-tracker--result-prefix nil 'move)
+        (setq response (json-read-from-string
+                        (buffer-substring-no-properties (point) (point-max))))
+        (dolist (one-stock response)
+          (push (cdr one-stock) jsons)))
       (kill-buffer (current-buffer)))
-    json))
+    (reverse jsons)))
 
 (defun stock-tracker--format-result (stock)
   "Format resulted STOCK information."
-  (let* ((json (stock-tracker--request stock))
-         (code       (assoc-default 'code       json))
-         (name       (assoc-default 'name       json)) ; chinese-word failed to align
-         (price      (assoc-default 'price      json))
-         (percent    (assoc-default 'percent    json))
-         (updown     (assoc-default 'updown     json))
-         (open       (assoc-default 'open       json))
-         (yestclose  (assoc-default 'yestclose  json))
-         (high       (assoc-default 'high       json))
-         (low        (assoc-default 'low        json))
-         (volume     (assoc-default 'volume     json)))
+  (let ((jsons (stock-tracker--request stock))
+        (result "")
+        symbol name price percent updown
+        high low volume open yestclose)
+    (dolist (json jsons)
+      (setq
+       symbol    (assoc-default 'symbol    json)
+       name      (assoc-default 'name      json) ; chinese-word failed to align
+       price     (assoc-default 'price     json)
+       percent   (assoc-default 'percent   json)
+       updown    (assoc-default 'updown    json)
+       open      (assoc-default 'open      json)
+       yestclose (assoc-default 'yestclose json)
+       high      (assoc-default 'high      json)
+       low       (assoc-default 'low       json)
+       volume    (assoc-default 'volume    json))
 
-    ;; construct data for display
-    (when code
-      (format stock-tracker--result-item-format
-              code name price (* 100 percent) updown high low
-              (stock-tracker--add-number-grouping volume ",") open yestclose))))
+      ;; construct data for display
+      (when symbol
+        (setq result
+              (concat result
+                      (format stock-tracker--result-item-format
+                              symbol name price (* 100 percent) updown high low
+                              (stock-tracker--add-number-grouping volume ",") open yestclose)))))
+    result))
 
 (defun stock-tracker--refresh ()
   "Refresh list of stocks."
-  (when stock-tracker-list-of-stocks
+  (when-let* ((has-stocks stock-tracker-list-of-stocks)
+              (stocks-string (mapconcat 'identity stock-tracker-list-of-stocks ","))
+              (recved-stocks-info (stock-tracker--format-result stocks-string)))
     (with-current-buffer (get-buffer-create stock-tracker-buffer-name)
       (let ((inhibit-read-only t))
         (erase-buffer)
         (stock-tracker-mode)
         (insert (format "%s\n\n" (concat "Refresh list of stocks at: " (current-time-string))))
         (insert stock-tracker--result-header)
-        (dolist (stock stock-tracker-list-of-stocks)
-          (insert (or (stock-tracker--format-result stock) "")))
+        (insert recved-stocks-info)
         (insert stock-tracker--result-footer)
         (stock-tracker--align-all-tables)))))
 
@@ -220,7 +226,7 @@ It defaults to a comma."
         (erase-buffer)
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
-        (insert (or (stock-tracker--format-result stock) ""))
+        (insert (stock-tracker--format-result stock))
         (insert stock-tracker--result-footer)
         (stock-tracker--align-all-tables)))))
 
