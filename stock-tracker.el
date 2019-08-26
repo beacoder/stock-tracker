@@ -141,8 +141,9 @@ It defaults to a comma."
   "Request STOCK, return a list of JSON each as alist if successes."
   (let (jsons)
     (with-current-buffer
-        (url-retrieve-synchronously
-         (stock-tracker--format-request-url stock) t nil 5)
+        (ignore-errors
+          (url-retrieve-synchronously
+           (stock-tracker--format-request-url stock) t nil 5))
       (set-buffer-multibyte t)
       (goto-char (point-min))
       (if (not (string-match "200 OK" (buffer-string)))
