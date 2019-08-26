@@ -145,12 +145,11 @@ It defaults to a comma."
          (stock-tracker--format-request-url stock) t nil 5)
       (set-buffer-multibyte t)
       (goto-char (point-min))
-      (ignore-errors
-        (if (not (string-match "200 OK" (buffer-string)))
-            (message "Problem connecting to the server")
-          (re-search-forward stock-tracker--result-prefix nil 'move)
-          (setq jsons
-                (json-read-from-string (buffer-substring-no-properties (point) (point-max))))))
+      (if (not (string-match "200 OK" (buffer-string)))
+          (message "Problem connecting to the server")
+        (re-search-forward stock-tracker--result-prefix nil 'move)
+        (setq jsons
+              (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
       (kill-current-buffer))
     jsons))
 
