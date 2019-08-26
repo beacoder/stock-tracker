@@ -140,17 +140,18 @@ It defaults to a comma."
 (defun stock-tracker--request (stock)
   "Request STOCK, return a list of JSON each as alist if successes."
   (let (jsons)
-    (ignore-errors
-      (with-temp-buffer
+    (with-current-buffer
         (url-retrieve-synchronously
          (stock-tracker--format-request-url stock) t nil 5)
-        (set-buffer-multibyte t)
-        (goto-char (point-min))
+      (set-buffer-multibyte t)
+      (goto-char (point-min))
+      (ignore-errors
         (if (not (string-match "200 OK" (buffer-string)))
             (message "Problem connecting to the server")
           (re-search-forward stock-tracker--result-prefix nil 'move)
-          (setq jsons (json-read-from-string
-                       (buffer-substring-no-properties (point) (point-max)))))))
+          (setq jsons
+                (json-read-from-string (buffer-substring-no-properties (point) (point-max))))))
+      (kill-current-buffer))
     jsons))
 
 (defun stock-tracker--format-result (stock)
