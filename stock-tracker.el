@@ -83,6 +83,9 @@
   "| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %s |\n|-\n"
   "Stock-Tracker result item format.")
 
+(defconst stock-tracker--response-buffer "*api-response*"
+  "Buffer name for error report when fail to read server response.")
+
 (defvar stock-tracker--refresh-timer nil
   "Stock-Tracker refresh timer.")
 
@@ -133,12 +136,61 @@ It defaults to a comma."
 ;; Core Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; @see copied from anaconda-mode-create-response-handler
+(defun stock-tracker--create-response-handler (callback)
+  "Create server response handler based on CALLBACK function for STOCK."
+  (let ((request-point (point))
+        (request-buffer (current-buffer))
+        (request-window (selected-window))
+        (request-tick (buffer-chars-modified-tick)))
+    (lambda (status)
+      (let ((http-buffer (current-buffer)))
+        (unwind-protect
+            (if (or (not (equal request-window (selected-window)))
+                    (with-current-buffer (window-buffer request-window)
+                      (or (not (equal request-buffer (current-buffer)))
+                          (not (equal request-point (point)))
+                          (not (equal request-tick (buffer-chars-modified-tick))))))
+                nil
+              (if (not (string-match "200 OK" (buffer-string)))
+                  (message "Problem connecting to the server")
+                (let ((response
+                       (condition-case nil
+                           (progn
+                             (set-buffer-multibyte t)
+                             (re-search-forward stock-tracker--result-prefix nil 'move)
+                             (json-read-from-string (buffer-substring-no-properties (point) (point-max))))
+                         (error ;; output error-reponse to error-buffer
+                          (let ((response
+                                 (concat (format "# status: %s\n# point: %s\n" status (point)) (buffer-string))))
+                            (with-current-buffer (get-buffer-create stock-tracker--response-buffer)
+                              (erase-buffer)
+                              (insert response)
+                              (goto-char (point-min)))
+                            nil)))))
+                  (if (null response)
+                      (message "Cannot read server response")
+                    (with-current-buffer request-buffer
+                      ;; Terminate `apply' call with empty list so response
+                      ;; will be treated as single argument.
+                      (apply callback response nil)))))
+              (kill-buffer http-buffer)))))))
+
 (defun stock-tracker--format-request-url (stock)
   "Format STOCK as a HTTP request URL."
   (format stock-tracker--api-url (url-hexify-string stock)))
 
-(defun stock-tracker--request (stock)
-  "Request STOCK, return a list of JSON each as alist if successes."
+(defun stock-tracker--request (stock callback)
+  "Perform api call for STOCK.
+Apply CALLBACK to the call result when retrieve it."
+  (url-retrieve
+   (stock-tracker--format-request-url stock)
+   (stock-tracker--create-response-handler callback)
+   nil
+   t))
+
+(defun stock-tracker--request-synchronously (stock)
+  "Request STOCK synchronously, return a list of JSON each as alist if successes."
   (let (jsons)
     (with-current-buffer
         (url-retrieve-synchronously
@@ -153,9 +205,9 @@ It defaults to a comma."
       (kill-current-buffer))
     jsons))
 
-(defun stock-tracker--format-result (stock)
-  "Format resulted STOCK information."
-  (let ((jsons (stock-tracker--request stock))
+(defun stock-tracker--format-response (response)
+  "Format stock information from RESPONSE."
+  (let ((jsons response)
         (result "") result-list code
         symbol name price percent updown
         high low volume open yestclose)
@@ -186,26 +238,41 @@ It defaults to a comma."
       (setq result (mapconcat 'identity (reverse result-list) "")))
     result))
 
-(defun stock-tracker--refresh ()
-  "Refresh list of stocks."
-  (when-let* ((has-stocks stock-tracker-list-of-stocks)
-              (valid-stocks (delq nil (delete-dups has-stocks)))
-              (stocks-string (mapconcat 'identity valid-stocks ","))
-              (recved-stocks-info (stock-tracker--format-result stocks-string))
-              (success-refresh (not (string= "" recved-stocks-info))))
+(defun stock-tracker--refresh-content (stocks-info)
+  "Refresh stocks with STOCKS-INFO."
+  (when stocks-info
     (with-current-buffer (get-buffer-create stock-tracker-buffer-name)
       (let ((inhibit-read-only t))
         (erase-buffer)
         (stock-tracker-mode)
         (insert (format "%s\n\n" (concat "Refresh list of stocks at: " (current-time-string))))
         (insert stock-tracker--result-header)
-        (insert recved-stocks-info)
+        (insert stocks-info)
         (stock-tracker--align-all-tables)))))
+
+(defun stock-tracker--refresh-callback (response)
+  "Refresh stocks with data from RESPONSE."
+  (when-let* (response
+              (stocks-info (stock-tracker--format-response response)))
+    (stock-tracker--refresh-content stocks-info)))
+
+(defun stock-tracker--refresh (&optional asynchronously)
+  "Refresh list of stocks ASYNCHRONOUSLY or not."
+  (when-let* ((has-stocks stock-tracker-list-of-stocks)
+              (valid-stocks (delq nil (delete-dups has-stocks)))
+              (stocks-string (mapconcat 'identity valid-stocks ",")))
+    (if asynchronously
+        (stock-tracker--request stocks-string 'stock-tracker--refresh-callback)
+      (stock-tracker--refresh-content
+       (stock-tracker--format-response (stock-tracker--request-synchronously stocks-string))))))
 
 (defun stock-tracker--run-refresh-timer ()
   "Run stock tracker refresh timer."
   (setq stock-tracker--refresh-timer
-        (run-with-timer 0 (* 10 stock-tracker-refresh-interval) 'stock-tracker--refresh)))
+        (run-with-timer (* 10 stock-tracker-refresh-interval)
+                        (* 10 stock-tracker-refresh-interval)
+                        'stock-tracker--refresh
+                        t)))
 
 (defun stock-tracker--cancel-refresh-timer ()
   "Cancel stock tracker refresh timer."
@@ -226,7 +293,7 @@ It defaults to a comma."
         (erase-buffer)
         (stock-tracker-mode)
         (insert stock-tracker--result-header)
-        (insert (stock-tracker--format-result stock))
+        (insert (stock-tracker--format-response (stock-tracker--request-synchronously stock)))
         (stock-tracker--align-all-tables)))))
 
 ;;;###autoload
@@ -238,6 +305,7 @@ It defaults to a comma."
        (list (format "%s" string)))))
   (if stock-tracker-list-of-stocks
       (progn
+        (stock-tracker--refresh)
         (stock-tracker--cancel-refresh-timer)
         (stock-tracker--run-refresh-timer))
     (and stock (stock-tracker--search stock)))
@@ -255,7 +323,8 @@ It defaults to a comma."
         (stock (format "%s" (read-from-minibuffer "stock? "))))
     (when-let* ((is-valid-stock (not (string= "" stock)))
                 (is-not-duplicate (not (member stock stock-tracker-list-of-stocks)))
-                (recved-stocks-info (stock-tracker--format-result stock))
+                (recved-stocks-info
+                 (stock-tracker--format-response (stock-tracker--request-synchronously stock)))
                 (success (not (string= "" recved-stocks-info))))
       (read-only-mode -1)
       (insert recved-stocks-info)
