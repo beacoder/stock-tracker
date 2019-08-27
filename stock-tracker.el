@@ -143,7 +143,7 @@ It defaults to a comma."
         (request-buffer (current-buffer))
         (request-window (selected-window))
         (request-tick (buffer-chars-modified-tick)))
-    (λ (status)
+    (lambda (status)
       (let ((http-buffer (current-buffer)))
         (unwind-protect
             (if (or (not (equal request-window (selected-window)))
