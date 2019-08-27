@@ -143,7 +143,7 @@ It defaults to a comma."
         (request-buffer (current-buffer))
         (request-window (selected-window))
         (request-tick (buffer-chars-modified-tick)))
-    (lambda (status)
+    (λ (status)
       (let ((http-buffer (current-buffer)))
         (unwind-protect
             (if (or (not (equal request-window (selected-window)))
@@ -173,8 +173,8 @@ It defaults to a comma."
                     (with-current-buffer request-buffer
                       ;; Terminate `apply' call with empty list so response
                       ;; will be treated as single argument.
-                      (apply callback response nil)))))
-              (kill-buffer http-buffer)))))))
+                      (apply callback response nil))))))
+          (kill-buffer http-buffer))))))
 
 (defun stock-tracker--format-request-url (stock)
   "Format STOCK as a HTTP request URL."
