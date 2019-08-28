@@ -381,7 +381,6 @@ Apply CALLBACK to the call result when retrieve it."
         show-trailing-whitespace nil)
   (setq-local line-move-visual t)
   (setq-local view-read-only nil)
-  (remove-hook 'kill-buffer-hook 'stock-tracker--cancel-timer-on-exit)
   (add-hook 'kill-buffer-hook 'stock-tracker--cancel-timer-on-exit)
   (run-mode-hooks))
 
