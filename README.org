@@ -36,7 +36,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 *Notes*:
 - Stocks listed in shanghai, prefiex with '0'; listed in shenzhen, prefix with '1', e.g: 0600000, 1002024
-- Stocks listed in hk, prefiex with 'hk', e.g: hk00493, hk00700
+- Stocks listed in hk, prefiex with 'hk0', e.g: hk00493, hk00700
 - Stocks listed in us, prefiex with 'US_', e.g: US_GOOG, US_ERIC
 
 ** License
