@@ -80,7 +80,7 @@
   "Stock-Tracker result header.")
 
 (defconst stock-tracker--result-item-format
-  "| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %s |\n|-\n"
+  "| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %.2f |\n|-\n"
   "Stock-Tracker result item format.")
 
 (defconst stock-tracker--response-buffer "*api-response*"
