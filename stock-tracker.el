@@ -22,7 +22,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
@@ -59,7 +59,7 @@
   :group 'stock-tracker)
 
 (defcustom stock-tracker-list-of-stocks nil
-  "List of stock to moniter."
+  "List of stock to monitor."
   :type 'list
   :group 'stock-tracker)
 
@@ -68,7 +68,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defconst stock-tracker--api-url
-  "http://api.money.126.net/data/feed/%s"
+  "https://api.money.126.net/data/feed/%s"
   "Stock-Tracker API template for stocks listed in SS, SZ, HK, US.")
 
 (defconst stock-tracker--result-prefix
@@ -160,7 +160,7 @@ It defaults to a comma."
                              (set-buffer-multibyte t)
                              (re-search-forward stock-tracker--result-prefix nil 'move)
                              (json-read-from-string (buffer-substring-no-properties (point) (point-max))))
-                         (error ;; output error-reponse to error-buffer
+                         (error ;; output error-response to error-buffer
                           (let ((response
                                  (concat (format "# status: %s\n# point: %s\n" status (point)) (buffer-string))))
                             (with-current-buffer (get-buffer-create stock-tracker--response-buffer)
@@ -235,7 +235,7 @@ Apply CALLBACK to the call result when retrieve it."
           'stock-code code)
          result-list)))
     (when result-list
-      (setq result (mapconcat 'identity (reverse result-list) "")))
+      (setq result (mapconcat #'identity (reverse result-list) "")))
     result))
 
 (defun stock-tracker--refresh-content (stocks-info)
@@ -260,7 +260,7 @@ Apply CALLBACK to the call result when retrieve it."
   "Refresh list of stocks ASYNCHRONOUSLY or not."
   (when-let* ((has-stocks stock-tracker-list-of-stocks)
               (valid-stocks (delq nil (delete-dups has-stocks)))
-              (stocks-string (mapconcat 'identity valid-stocks ",")))
+              (stocks-string (mapconcat #'identity valid-stocks ",")))
     (if asynchronously
         (stock-tracker--request stocks-string 'stock-tracker--refresh-callback)
       (stock-tracker--refresh-content
@@ -381,7 +381,7 @@ Apply CALLBACK to the call result when retrieve it."
         show-trailing-whitespace nil)
   (setq-local line-move-visual t)
   (setq-local view-read-only nil)
-  (add-hook 'kill-buffer-hook 'stock-tracker--cancel-timer-on-exit)
+  (add-hook 'kill-buffer-hook #'stock-tracker--cancel-timer-on-exit)
   (run-mode-hooks))
 
 
