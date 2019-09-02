@@ -183,11 +183,12 @@ It defaults to a comma."
 (defun stock-tracker--request (stock callback)
   "Perform api call for STOCK.
 Apply CALLBACK to the call result when retrieve it."
-  (url-retrieve
-   (stock-tracker--format-request-url stock)
-   (stock-tracker--create-response-handler callback)
-   nil
-   t))
+  (ignore-errors
+    (url-retrieve
+     (stock-tracker--format-request-url stock)
+     (stock-tracker--create-response-handler callback)
+     nil
+     t)))
 
 (defun stock-tracker--request-synchronously (stock)
   "Request STOCK synchronously, return a list of JSON each as alist if successes."
