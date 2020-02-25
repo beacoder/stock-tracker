@@ -86,6 +86,13 @@
 (defconst stock-tracker--response-buffer "*api-response*"
   "Buffer name for error report when fail to read server response.")
 
+(defconst stock-tracker--note-string
+  "Stocks listed in SH, prefix with ‘0’,   e.g: 0600000
+Stocks listed in SZ, prefix with ‘1’,   e.g: 1002024
+Stocks listed in HK, prefix with ‘hk0’, e.g: hk00700
+Stocks listed in US, prefix with ‘US_’, e.g: US_GOOG"
+  "Stock-Tracker note string.")
+
 (defvar stock-tracker--refresh-timer nil
   "Stock-Tracker refresh timer.")
 
@@ -247,6 +254,7 @@ Apply CALLBACK to the call result when retrieve it."
         (erase-buffer)
         (stock-tracker-mode)
         (insert (format "%s\n\n" (concat "Refresh list of stocks at: " (current-time-string))))
+        (insert (format "%s\n\n" stock-tracker--note-string))
         (insert stock-tracker--result-header)
         (insert stocks-info)
         (stock-tracker--align-all-tables)))))
