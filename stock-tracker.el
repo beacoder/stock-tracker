@@ -1,6 +1,6 @@
 ;;; stock-tracker.el --- Track stock price -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019 Huming Chen
+;; Copyright (C) 2019-2020 Huming Chen
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
