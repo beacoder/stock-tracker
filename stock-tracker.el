@@ -87,7 +87,11 @@
   "Buffer name for error report when fail to read server response.")
 
 (defconst stock-tracker--note-string
-  "Stocks listed in SH, prefix with ‘0’,   e.g: 0600000
+  "To add     stock, use `i'
+To delete  stock, use `d'
+To refresh stock, use `g'
+
+Stocks listed in SH, prefix with ‘0’,   e.g: 0600000
 Stocks listed in SZ, prefix with ‘1’,   e.g: 1002024
 Stocks listed in HK, prefix with ‘hk0’, e.g: hk00700
 Stocks listed in US, prefix with ‘US_’, e.g: US_GOOG"
