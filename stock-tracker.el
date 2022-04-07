@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
-;; Package-Requires: ((emacs "26") (dash "2.16.0"))
+;; Package-Requires: ((emacs "26.1") (dash "2.16.0"))
 
 ;; This file is not part of GNU Emacs.
 
