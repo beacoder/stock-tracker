@@ -87,7 +87,7 @@
   "Buffer name for error report when fail to read server response.")
 
 (defconst stock-tracker--note-string
-  "To add     stock, use `i'
+  "To add     stock, use `a'
 To delete  stock, use `d'
 To refresh stock, use `g'
 
