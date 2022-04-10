@@ -148,7 +148,6 @@
   "To add     stock, use `a'
 To delete  stock, use `d'
 To refresh stock, use `g'
-
 Stocks listed in SH, prefix with ‘0’,   e.g: 0600000
 Stocks listed in SZ, prefix with ‘1’,   e.g: 1002024
 Stocks listed in US,                    e.g: GOOG"
@@ -277,7 +276,7 @@ It defaults to a comma."
 
         ;; sanity check
         (unless (and symbol name price percent updown open yestclose high low volume)
-          (with-temp-message "Invalid data received."
+          (with-temp-message "Invalid data received !!!"
             (sit-for 1))
           (throw 'break 0))
 
@@ -330,16 +329,17 @@ It defaults to a comma."
            (stock-tracker--stocks-info nil)
            (chn-symbol (make-stock-tracker--chn-symbol))
            (us-symbol (make-stock-tracker--us-symbol)))
-      (when chn-stocks-string
-        (push
-         (stock-tracker--format-response (stock-tracker--request-synchronously chn-stocks-string chn-symbol) chn-symbol)
-         stock-tracker--stocks-info))
-      (dolist (us-stock us-stocks)
-        (push
-         (stock-tracker--format-response (stock-tracker--request-synchronously us-stock us-symbol) us-symbol)
-         stock-tracker--stocks-info))
-      (when stock-tracker--stocks-info
-        (stock-tracker--refresh-content (stock-tracker--list-to-string (reverse stock-tracker--stocks-info) ""))))))
+      (with-temp-message "Fetching stock data ..."
+        (when chn-stocks-string
+          (push
+           (stock-tracker--format-response (stock-tracker--request-synchronously chn-stocks-string chn-symbol) chn-symbol)
+           stock-tracker--stocks-info))
+        (dolist (us-stock us-stocks)
+          (push
+           (stock-tracker--format-response (stock-tracker--request-synchronously us-stock us-symbol) us-symbol)
+           stock-tracker--stocks-info))
+        (when stock-tracker--stocks-info
+          (stock-tracker--refresh-content (stock-tracker--list-to-string (reverse stock-tracker--stocks-info) "")))))))
 
 (defun stock-tracker--run-refresh-timer ()
   "Run stock tracker refresh timer."
@@ -434,8 +434,8 @@ It defaults to a comma."
         (org-table-kill-row)
         (setq stock-tracker-list-of-stocks
               (delete stock-code stock-tracker-list-of-stocks))
-      (when orgin-read-only (read-only-mode 1))
-      (stock-tracker--refresh)))))
+        (when orgin-read-only (read-only-mode 1))
+        (stock-tracker--refresh)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
