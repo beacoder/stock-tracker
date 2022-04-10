@@ -4,10 +4,10 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
-;; Package-Requires: ((emacs "26.1") (dash "2.16.0"))
+;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,9 +37,13 @@
 ;; 0.1.1 Removed asynchronous handling to make logic simpler
 ;;       Added "quote.cnbc.com" api to get US stock information
 ;;       Remove HK stock, as no available api for now
+;;
+;; 0.1.2 Support asynchronous stock fetching with async
+;;
 
 ;;; Code:
 
+(require 'async)
 (require 'dash)
 (require 'json)
 (require 'org)
@@ -158,9 +162,6 @@
 (defvar stock-tracker--refresh-timer nil
   "Stock-Tracker refresh timer.")
 
-(defvar stock-tracker--stocks-info nil
-  "Final stocks info collected for display.")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -248,22 +249,22 @@ It defaults to a comma."
       (kill-current-buffer))
     jsons))
 
-(defun stock-tracker--format-response (response tag)
+(defun stock-tracker--format-response-async (response tag)
   "Format stock information from RESPONSE with TAG."
   (let ((jsons response)
         (result-filds (stock-tracker--result-fields tag))
-        (result "") result-list code
+        (result "") result-list
         symbol name price percent updown
         high low volume open yestclose)
     (catch 'break
+      (when (cl-typep tag 'stock-tracker--chn-symbol)
+        (setq jsons (car jsons)))
       (dolist (json jsons)
         (if (cl-typep tag 'stock-tracker--chn-symbol)
-            (setq
-             code (symbol-name (car json))
-             json (cdr json))
-          ;; for us-stock, one stock per request
-          (setq json jsons)
-          (setq code (assoc-default (map-elt result-filds 'symbol) json)))
+            (setq json (cdr json))
+
+          ;; for us-stock, there's only one stock data here
+          (setq json jsons))
         (setq
          symbol    (assoc-default (map-elt result-filds 'symbol)    json)
          name      (assoc-default (map-elt result-filds 'name)      json) ; chinese-word failed to align
@@ -300,8 +301,70 @@ It defaults to a comma."
            (propertize
             (format stock-tracker--result-item-format symbol name price percent updown
                     high low (stock-tracker--add-number-grouping volume ",") open yestclose)
-            'stock-code code)
+            'stock-code symbol)
            result-list))
+
+        ;; for us-stock, there's only one stock data here
+        (unless (cl-typep tag 'stock-tracker--chn-symbol)
+          (throw 'break t))))
+    (when result-list
+      (setq result (stock-tracker--list-to-string (reverse result-list) "")))
+    result))
+
+(defun stock-tracker--format-response (response tag)
+  "Format stock information from RESPONSE with TAG."
+  (let ((jsons response)
+        (result-filds (stock-tracker--result-fields tag))
+        (result "") result-list
+        symbol name price percent updown
+        high low volume open yestclose)
+    (catch 'break
+      (dolist (json jsons)
+        (if (cl-typep tag 'stock-tracker--chn-symbol)
+            (setq json (cdr json))
+
+          ;; for us-stock, there's only one stock data here
+          (setq json jsons))
+        (setq
+         symbol    (assoc-default (map-elt result-filds 'symbol)    json)
+         name      (assoc-default (map-elt result-filds 'name)      json) ; chinese-word failed to align
+         price     (assoc-default (map-elt result-filds 'price)     json)
+         percent   (assoc-default (map-elt result-filds 'percent)   json)
+         updown    (assoc-default (map-elt result-filds 'updown)    json)
+         open      (assoc-default (map-elt result-filds 'open)      json)
+         yestclose (assoc-default (map-elt result-filds 'yestclose) json)
+         high      (assoc-default (map-elt result-filds 'high)      json)
+         low       (assoc-default (map-elt result-filds 'low)       json)
+         volume    (assoc-default (map-elt result-filds 'volume)    json))
+
+        ;; sanity check
+        (unless (and symbol name price percent updown open yestclose high low volume)
+          (with-temp-message "Invalid data received !!!"
+            (sit-for 1))
+          (throw 'break 0))
+
+        ;; formating
+        (when (stringp percent)
+          (setq percent (string-to-number percent)))
+        (when (stringp volume)
+          (setq volume (string-to-number volume)))
+        (when (stringp yestclose)
+          (setq yestclose (string-to-number yestclose)))
+
+        ;; some extra handling
+        (when (cl-typep tag 'stock-tracker--chn-symbol)
+          (setq percent (* 100 percent)))
+
+        ;; construct data for display
+        (when symbol
+          (push
+           (propertize
+            (format stock-tracker--result-item-format symbol name price percent updown
+                    high low (stock-tracker--add-number-grouping volume ",") open yestclose)
+            'stock-code symbol)
+           result-list))
+
+        ;; for us-stock, there's only one stock data here
         (unless (cl-typep tag 'stock-tracker--chn-symbol)
           (throw 'break t))))
     (when result-list
@@ -321,34 +384,130 @@ It defaults to a comma."
         (insert stocks-info)
         (stock-tracker--align-all-tables)))))
 
-(defun stock-tracker--refresh ()
-  "Refresh list of stocks."
+(defun stock-tracker--refresh-async (chn-stocks  us-stocks)
+  "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
+  (let* ((chn-stocks-string (mapconcat #'identity chn-stocks ","))
+         (us-stocks-string (mapconcat #'identity us-stocks ","))
+         (chn-symbol (make-stock-tracker--chn-symbol))
+         (us-symbol (make-stock-tracker--us-symbol)))
+    (let
+        ;; pass params to subprocess
+        ((tmp-chn-stocks-string chn-stocks-string)
+         (tmp-us-stocks-string us-stocks-string))
+
+      (with-temp-message "Fetching stock data async ..."
+        (sit-for 1))
+
+      ;; start subprocess
+      (async-start
+
+       ;; What to do in the child process
+       `(lambda ()
+          (require 'url)
+          (require 'subr-x)
+
+          ;; save params into subprocess, use string herer
+          (setq subprocess-chn-stocks-string ,tmp-chn-stocks-string)
+          (setq subprocess-us-stocks-string ,tmp-us-stocks-string)
+
+          ;; mininum required functions in subprocess
+          (cl-defmethod stock-tracker--subprocess-api-url (string-tag)
+            "API to get stock."
+            (if (equal string-tag "chn-stock")
+                "https://api.money.126.net/data/feed/%s"
+              "https://quote.cnbc.com/quote-html-webservice/quote.htm?partnerId=2&requestMethod=quick&exthrs=1&noform=1&fund=1&extendedMask=2&output=json&symbols=%s"))
+
+          (cl-defmethod stock-tracker--subprocess-result-prefix (string-tag)
+            "Stock-Tracker result prefix for S from CHN."
+            (if (equal string-tag "chn-stock")
+                "_ntes_quote_callback("
+              "{\"QuickQuoteResult\":{\"xmlns\":\"http://quote.cnbc.com/services/MultiQuote/2006\",\"QuickQuote\":"))
+
+          (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
+            "Request STOCK with TAG synchronously, return a list of JSON each as alist if successes."
+            (let (jsons)
+              (with-current-buffer
+                  (url-retrieve-synchronously
+                   (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)) t nil 5)
+                (set-buffer-multibyte t)
+                (goto-char (point-min))
+                (when (string-match "200 OK" (buffer-string))
+                  (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
+                  (setq
+                   jsons
+                   (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
+                (kill-current-buffer))
+              jsons))
+
+          ;; make sure subprocess can exit without query
+          (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+
+          ;; do real business here
+          (let ((result '((chn-stock . 0) (us-stock . 0)))
+                (chn-result nil)
+                (us-result nil))
+            (when subprocess-chn-stocks-string
+              (push
+               (stock-tracker--subprocess-request-synchronously subprocess-chn-stocks-string "chn-stock") chn-result))
+            (dolist (us-stock (split-string subprocess-us-stocks-string ","))
+              (push
+               (stock-tracker--subprocess-request-synchronously us-stock "us-stock") us-result))
+            (when chn-result (map-put! result 'chn-stock chn-result))
+            (when us-result (map-put! result 'us-stock us-result))
+            result))
+
+       ;; What to do when it finishes
+       (lambda (result)
+         (let ((chn-result (cdr (assoc 'chn-stock result)))
+               (us-result (cdr (assoc 'us-stock result)))
+               (all-collected-stocks-info nil))
+
+           ;; process stock data
+           (with-temp-message "Fetching stock done"
+             (unless (numberp chn-result)
+               (push (stock-tracker--format-response-async chn-result chn-symbol)
+                     all-collected-stocks-info))
+             (unless (numberp us-result)
+               (dolist (us-stock us-result)
+                 (push (stock-tracker--format-response us-stock us-symbol)
+                       all-collected-stocks-info)))
+             (when all-collected-stocks-info
+               (stock-tracker--refresh-content
+                (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))))))))))
+
+(defun stock-tracker--refresh (&optional asynchronously)
+  "Refresh list of stocks ASYNCHRONOUSLY or not."
   (when-let* ((has-stocks stock-tracker-list-of-stocks)
               (valid-stocks (delq nil (delete-dups has-stocks))))
     (let* ((chn-stocks (stock-tracker--get-chn-stocks valid-stocks))
            (us-stocks (stock-tracker--get-us-stocks valid-stocks))
            (chn-stocks-string (mapconcat #'identity chn-stocks ","))
-           (stock-tracker--stocks-info nil)
+           (all-collected-stocks-info nil)
            (chn-symbol (make-stock-tracker--chn-symbol))
            (us-symbol (make-stock-tracker--us-symbol)))
-      (with-temp-message "Fetching stock data ..."
-        (when chn-stocks-string
-          (push
-           (stock-tracker--format-response (stock-tracker--request-synchronously chn-stocks-string chn-symbol) chn-symbol)
-           stock-tracker--stocks-info))
-        (dolist (us-stock us-stocks)
-          (push
-           (stock-tracker--format-response (stock-tracker--request-synchronously us-stock us-symbol) us-symbol)
-           stock-tracker--stocks-info))
-        (when stock-tracker--stocks-info
-          (stock-tracker--refresh-content (stock-tracker--list-to-string (reverse stock-tracker--stocks-info) "")))))))
+      (if asynchronously
+          ;; asynchronously
+          (stock-tracker--refresh-async chn-stocks us-stocks)
+        ;; synchronously
+        (with-temp-message "Fetching stock data ..."
+          (when chn-stocks-string
+            (push
+             (stock-tracker--format-response (stock-tracker--request-synchronously chn-stocks-string chn-symbol) chn-symbol)
+             all-collected-stocks-info))
+          (dolist (us-stock us-stocks)
+            (push
+             (stock-tracker--format-response (stock-tracker--request-synchronously us-stock us-symbol) us-symbol)
+             all-collected-stocks-info))
+          (when all-collected-stocks-info
+            (stock-tracker--refresh-content (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))))))))
 
 (defun stock-tracker--run-refresh-timer ()
   "Run stock tracker refresh timer."
   (setq stock-tracker--refresh-timer
         (run-with-timer (* 10 stock-tracker-refresh-interval)
                         (* 10 stock-tracker-refresh-interval)
-                        'stock-tracker--refresh)))
+                        'stock-tracker--refresh
+                        t)))
 
 (defun stock-tracker--cancel-refresh-timer ()
   "Cancel stock tracker refresh timer."
