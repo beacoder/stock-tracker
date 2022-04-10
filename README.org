@@ -4,7 +4,10 @@
 [[http://melpa.org/#/stock-tracker][file:http://melpa.org/packages/stock-tracker-badge.svg]]
 [[996.icu][file:https://img.shields.io/badge/link-996.icu-red.svg]]
 
-=stock-tracker= is a simple [[https://money.163.com/stock/][Netease Stock (网易股票)]] interface for Emacs.
+=stock-tracker= is a simple interface for Emacs to track stocks in china and us markets.
+
+china stock api: [[https://money.163.com/stock/][Netease Stock (网易股票)]]
+us    stock api: [[https://quote.cnbc.com/quote-html-webservice/quoteform.htm][CNBC]]
 
 ** Installation
 
@@ -23,7 +26,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 ;; Monitor list of stocks
 (setq stock-tracker-list-of-stocks
-      '("0601595" "0601857"))
+      '("0601595" "0601857" "GOOG"))
 
 ;; Refresh stock price every 5*10 secs
 (setq stock-tracker-refresh-interval 5)
@@ -36,8 +39,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 *Notes*:
 - Stocks listed in SH, prefix with ‘0’,   e.g: 0600000
 - Stocks listed in SZ, prefix with ‘1’,   e.g: 1002024
-- Stocks listed in HK, prefix with ‘hk0’, e.g: hk00700
-- Stocks listed in US, prefix with ‘US_’, e.g: US_GOOG
+- Stocks listed in US,                    e.g: GOOG
 
 ** License
 
