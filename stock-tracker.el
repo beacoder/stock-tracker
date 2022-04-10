@@ -145,12 +145,14 @@
   "Buffer name for error report when fail to read server response.")
 
 (defconst stock-tracker--note-string
-  "To add     stock, use `a'
-To delete  stock, use `d'
-To refresh stock, use `g'
-Stocks listed in SH, prefix with ‘0’,   e.g: 0600000
-Stocks listed in SZ, prefix with ‘1’,   e.g: 1002024
-Stocks listed in US,                    e.g: GOOG"
+  "** To add     stock, use [ *a* ]
+** To remove  stock, use [ *d* ]
+** To refresh stock, use [ *g* ]
+
+** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
+** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
+** Stocks listed in US,                    e.g: GOOG
+"
   "Stock-Tracker note string.")
 
 (defvar stock-tracker--refresh-timer nil
@@ -313,7 +315,7 @@ It defaults to a comma."
       (let ((inhibit-read-only t))
         (erase-buffer)
         (stock-tracker-mode)
-        (insert (format "%s\n\n" (concat "Refresh list of stocks at: " (current-time-string))))
+        (insert (format "%s\n\n" (concat "* Refresh list of stocks at: [" (current-time-string) "]")))
         (insert (format "%s\n\n" stock-tracker--note-string))
         (insert stock-tracker--result-header)
         (insert stocks-info)
