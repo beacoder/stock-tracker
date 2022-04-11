@@ -399,8 +399,10 @@ It defaults to a comma."
 
      ;; What to do in the child process
      `(lambda ()
+
+        ;; libraries
         (require 'url)
-        (require 'subr-x)
+        (require 'subr)
 
         ;; pass params to subprocess, use string here
         (setq subprocess-chn-stocks-string ,chn-stocks-string
@@ -408,31 +410,32 @@ It defaults to a comma."
 
         ;; mininum required functions in subprocess
         (defun stock-tracker--subprocess-api-url (string-tag)
-          "API to get stock."
+          "API to get stock data."
           (if (equal string-tag "chn-stock")
               "https://api.money.126.net/data/feed/%s"
             "https://quote.cnbc.com/quote-html-webservice/quote.htm?partnerId=2&requestMethod=quick&exthrs=1&noform=1&fund=1&extendedMask=2&output=json&symbols=%s"))
 
         (defun stock-tracker--subprocess-result-prefix (string-tag)
-          "Stock-Tracker result prefix for S from CHN."
+          "Stock data result prefix."
           (if (equal string-tag "chn-stock")
               "_ntes_quote_callback("
             "{\"QuickQuoteResult\":{\"xmlns\":\"http://quote.cnbc.com/services/MultiQuote/2006\",\"QuickQuote\":"))
 
         (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
-          "Request STOCK with TAG synchronously, return a list of JSON each as alist if successes."
+          "Get stock data synchronously, return a list of JSON each as alist."
           (let (jsons)
-            (with-current-buffer
-                (url-retrieve-synchronously
-                 (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)) t nil 5)
-              (set-buffer-multibyte t)
-              (goto-char (point-min))
-              (when (string-match "200 OK" (buffer-string))
-                (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
-                (setq
-                 jsons
-                 (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
-              (kill-current-buffer))
+            (ignore-errors
+              (with-current-buffer
+                  (url-retrieve-synchronously
+                   (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)) t nil 5)
+                (set-buffer-multibyte t)
+                (goto-char (point-min))
+                (when (string-match "200 OK" (buffer-string))
+                  (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
+                  (setq
+                   jsons
+                   (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
+                (kill-current-buffer)))
             jsons))
 
         ;; make sure subprocess can exit without query
