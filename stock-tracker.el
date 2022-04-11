@@ -390,90 +390,86 @@ It defaults to a comma."
          (us-stocks-string (mapconcat #'identity us-stocks ","))
          (chn-symbol (make-stock-tracker--chn-symbol))
          (us-symbol (make-stock-tracker--us-symbol)))
-    (let
-        ;; pass params to subprocess
-        ((tmp-chn-stocks-string chn-stocks-string)
-         (tmp-us-stocks-string us-stocks-string))
 
-      (with-temp-message "Fetching stock data async ..."
-        (sit-for 1))
+    (with-temp-message "Fetching stock data async ..."
+      (sit-for 1))
 
-      ;; start subprocess
-      (async-start
+    ;; start subprocess
+    (async-start
 
-       ;; What to do in the child process
-       `(lambda ()
-          (require 'url)
-          (require 'subr-x)
+     ;; What to do in the child process
+     `(lambda ()
+        (require 'url)
+        (require 'subr-x)
 
-          ;; save params into subprocess, use string herer
-          (setq subprocess-chn-stocks-string ,tmp-chn-stocks-string)
-          (setq subprocess-us-stocks-string ,tmp-us-stocks-string)
+        ;; pass params to subprocess, use string here
+        (setq subprocess-chn-stocks-string ,chn-stocks-string
+              subprocess-us-stocks-string ,us-stocks-string)
 
-          ;; mininum required functions in subprocess
-          (cl-defmethod stock-tracker--subprocess-api-url (string-tag)
-            "API to get stock."
-            (if (equal string-tag "chn-stock")
-                "https://api.money.126.net/data/feed/%s"
-              "https://quote.cnbc.com/quote-html-webservice/quote.htm?partnerId=2&requestMethod=quick&exthrs=1&noform=1&fund=1&extendedMask=2&output=json&symbols=%s"))
+        ;; mininum required functions in subprocess
+        (defun stock-tracker--subprocess-api-url (string-tag)
+          "API to get stock."
+          (if (equal string-tag "chn-stock")
+              "https://api.money.126.net/data/feed/%s"
+            "https://quote.cnbc.com/quote-html-webservice/quote.htm?partnerId=2&requestMethod=quick&exthrs=1&noform=1&fund=1&extendedMask=2&output=json&symbols=%s"))
 
-          (cl-defmethod stock-tracker--subprocess-result-prefix (string-tag)
-            "Stock-Tracker result prefix for S from CHN."
-            (if (equal string-tag "chn-stock")
-                "_ntes_quote_callback("
-              "{\"QuickQuoteResult\":{\"xmlns\":\"http://quote.cnbc.com/services/MultiQuote/2006\",\"QuickQuote\":"))
+        (defun stock-tracker--subprocess-result-prefix (string-tag)
+          "Stock-Tracker result prefix for S from CHN."
+          (if (equal string-tag "chn-stock")
+              "_ntes_quote_callback("
+            "{\"QuickQuoteResult\":{\"xmlns\":\"http://quote.cnbc.com/services/MultiQuote/2006\",\"QuickQuote\":"))
 
-          (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
-            "Request STOCK with TAG synchronously, return a list of JSON each as alist if successes."
-            (let (jsons)
-              (with-current-buffer
-                  (url-retrieve-synchronously
-                   (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)) t nil 5)
-                (set-buffer-multibyte t)
-                (goto-char (point-min))
-                (when (string-match "200 OK" (buffer-string))
-                  (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
-                  (setq
-                   jsons
-                   (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
-                (kill-current-buffer))
-              jsons))
+        (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
+          "Request STOCK with TAG synchronously, return a list of JSON each as alist if successes."
+          (let (jsons)
+            (with-current-buffer
+                (url-retrieve-synchronously
+                 (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)) t nil 5)
+              (set-buffer-multibyte t)
+              (goto-char (point-min))
+              (when (string-match "200 OK" (buffer-string))
+                (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
+                (setq
+                 jsons
+                 (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
+              (kill-current-buffer))
+            jsons))
 
-          ;; make sure subprocess can exit without query
-          (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+        ;; make sure subprocess can exit without query
+        (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
 
-          ;; do real business here
-          (let ((result '((chn-stock . 0) (us-stock . 0)))
-                (chn-result nil)
-                (us-result nil))
-            (when subprocess-chn-stocks-string
-              (push
-               (stock-tracker--subprocess-request-synchronously subprocess-chn-stocks-string "chn-stock") chn-result))
-            (dolist (us-stock (split-string subprocess-us-stocks-string ","))
-              (push
-               (stock-tracker--subprocess-request-synchronously us-stock "us-stock") us-result))
-            (when chn-result (map-put! result 'chn-stock chn-result))
-            (when us-result (map-put! result 'us-stock us-result))
-            result))
+        ;; do real business here
+        (let ((result '((chn-stock . 0) (us-stock . 0)))
+              (chn-result nil)
+              (us-result nil))
+          (when subprocess-chn-stocks-string
+            (push
+             (stock-tracker--subprocess-request-synchronously subprocess-chn-stocks-string "chn-stock") chn-result))
+          (dolist (us-stock (split-string subprocess-us-stocks-string ","))
+            (push
+             (stock-tracker--subprocess-request-synchronously us-stock "us-stock") us-result))
+          (when chn-result (map-put! result 'chn-stock chn-result))
+          (when us-result (map-put! result 'us-stock us-result))
+          result))
 
-       ;; What to do when it finishes
-       (lambda (result)
-         (let ((chn-result (cdr (assoc 'chn-stock result)))
-               (us-result (cdr (assoc 'us-stock result)))
-               (all-collected-stocks-info nil))
+     ;; What to do when it finishes
+     (lambda (result)
+       (let ((chn-result (cdr (assoc 'chn-stock result)))
+             (us-result (cdr (assoc 'us-stock result)))
+             (all-collected-stocks-info nil))
 
-           ;; process stock data
-           (with-temp-message "Fetching stock done"
-             (unless (numberp chn-result)
-               (push (stock-tracker--format-response-async chn-result chn-symbol)
-                     all-collected-stocks-info))
-             (unless (numberp us-result)
-               (dolist (us-stock us-result)
-                 (push (stock-tracker--format-response us-stock us-symbol)
-                       all-collected-stocks-info)))
-             (when all-collected-stocks-info
-               (stock-tracker--refresh-content
-                (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))))))))))
+         ;; process stock data
+         (with-temp-message "Fetching stock done"
+           (unless (numberp chn-result)
+             (push (stock-tracker--format-response-async chn-result chn-symbol)
+                   all-collected-stocks-info))
+           (unless (numberp us-result)
+             (dolist (us-stock us-result)
+               (push (stock-tracker--format-response us-stock us-symbol)
+                     all-collected-stocks-info)))
+           (when all-collected-stocks-info
+             (stock-tracker--refresh-content
+              (stock-tracker--list-to-string (reverse all-collected-stocks-info) "")))))))))
 
 (defun stock-tracker--refresh (&optional asynchronously)
   "Refresh list of stocks ASYNCHRONOUSLY or not."
