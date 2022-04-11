@@ -469,13 +469,19 @@ It defaults to a comma."
 
          ;; process stock data
          (with-temp-message "Fetching stock done"
+
+           ;; format chn stocks
            (unless (numberp chn-result)
              (push (stock-tracker--format-response-async chn-result chn-symbol)
                    all-collected-stocks-info))
+
+           ;; format us stocks
            (unless (numberp us-result)
              (dolist (us-stock us-result)
                (push (stock-tracker--format-response us-stock us-symbol)
                      all-collected-stocks-info)))
+
+           ;; populate stocks
            (when all-collected-stocks-info
              (stock-tracker--refresh-content
               (stock-tracker--list-to-string (reverse all-collected-stocks-info) "")))))))))
