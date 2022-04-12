@@ -584,7 +584,7 @@ It defaults to a comma."
       (push stock stock-tracker-list-of-stocks)
       (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks)))
     (when orgin-read-only (read-only-mode 1))
-    (stock-tracker--refresh t)))
+    (stock-tracker--refresh)))
 
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
@@ -604,7 +604,7 @@ It defaults to a comma."
         (setq stock-tracker-list-of-stocks
               (delete stock-code stock-tracker-list-of-stocks))
         (when orgin-read-only (read-only-mode 1))
-        (stock-tracker--refresh t)))))
+        (stock-tracker--refresh)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
