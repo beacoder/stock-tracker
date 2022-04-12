@@ -480,8 +480,10 @@ It defaults to a comma."
 
            ;; populate stocks
            (when all-collected-stocks-info
-             (stock-tracker--refresh-content
-              (stock-tracker--list-to-string (reverse all-collected-stocks-info) "")))))))))
+             (setq all-collected-stocks-string
+                   (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))
+             (unless (string-empty-p all-collected-stocks-string)
+               (stock-tracker--refresh-content all-collected-stocks-string)))))))))
 
 (defun stock-tracker--refresh (&optional asynchronously)
   "Refresh list of stocks ASYNCHRONOUSLY or not."
