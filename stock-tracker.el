@@ -229,24 +229,21 @@ It defaults to a comma."
 ;; Core Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun stock-tracker--format-request-url (stock tag)
-  "Format STOCK with TAG as a HTTP request URL."
-  (format (stock-tracker--api-url tag) (url-hexify-string stock)))
-
 (defun stock-tracker--request-synchronously (stock tag)
-  "Request STOCK with TAG synchronously, return a list of JSON each as alist if successes."
+  "Get STOCK data with TAG synchronously, return a list of JSON each as alist."
   (let (jsons)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         (stock-tracker--format-request-url stock tag) t nil 5)
-      (set-buffer-multibyte t)
-      (goto-char (point-min))
-      (when (string-match "200 OK" (buffer-string))
-        (re-search-forward (stock-tracker--result-prefix tag) nil 'move)
-        (setq
-         jsons
-         (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
-      (kill-current-buffer))
+    (ignore-errors
+      (with-current-buffer
+          (url-retrieve-synchronously
+           (format (stock-tracker--api-url tag) (url-hexify-string stock)) t nil 5)
+        (set-buffer-multibyte t)
+        (goto-char (point-min))
+        (when (string-match "200 OK" (buffer-string))
+          (re-search-forward (stock-tracker--result-prefix tag) nil 'move)
+          (setq
+           jsons
+           (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
+        (kill-current-buffer)))
     jsons))
 
 (defun stock-tracker--format-response-async (response tag)
@@ -401,8 +398,8 @@ It defaults to a comma."
      `(lambda ()
 
         ;; libraries
+        (require 'subr-x)
         (require 'url)
-        (require 'subr)
 
         ;; pass params to subprocess, use string here
         (setq subprocess-chn-stocks-string ,chn-stocks-string
@@ -587,7 +584,7 @@ It defaults to a comma."
       (push stock stock-tracker-list-of-stocks)
       (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks)))
     (when orgin-read-only (read-only-mode 1))
-    (stock-tracker--refresh)))
+    (stock-tracker--refresh t)))
 
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
@@ -607,7 +604,7 @@ It defaults to a comma."
         (setq stock-tracker-list-of-stocks
               (delete stock-code stock-tracker-list-of-stocks))
         (when orgin-read-only (read-only-mode 1))
-        (stock-tracker--refresh)))))
+        (stock-tracker--refresh t)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
