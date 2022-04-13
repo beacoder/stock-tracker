@@ -435,8 +435,10 @@ It defaults to a comma."
                 (kill-current-buffer)))
             jsons))
 
-        ;; make sure subprocess can exit without query
+        ;; make sure subprocess can exit successfully
         (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+        (when (>= emacs-major-version 28)
+          (setq backtrace-on-error-noninteractive nil))
 
         ;; do real business here
         (let ((result '((chn-stock . 0) (us-stock . 0)))
