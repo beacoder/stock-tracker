@@ -24,10 +24,6 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 #+BEGIN_SRC emacs-lisp
 
-;; Monitor list of stocks
-(setq stock-tracker-list-of-stocks
-      '("0601595" "0601857" "GOOG"))
-
 ;; Refresh stock price every 5*10 secs
 (setq stock-tracker-refresh-interval 5)
 
@@ -46,6 +42,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 - Support CHN (SS, SZ), US stocks.
 - Support asynchronous data fetching.
+- Automatically save list of added stocks.
 
 ** License
 
