@@ -4,7 +4,9 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.3
+;; Package-Version: 20220414.131
+;; Package-Commit: 6ad9c9d39569d89753b2a54ccb5e8636e04c016e
+;; Version: 0.1.2
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -37,13 +39,15 @@
 ;; 0.1.1 Removed asynchronous handling to make logic simpler
 ;;       Added "quote.cnbc.com" api to get US stock information
 ;;       Remove HK stock, as no available api for now
+;;
 ;; 0.1.2 Support asynchronous stock fetching with async
-;; 0.1.3 Clean hanging subprocesses periodically
+;;
 
 ;;; Code:
 
 (require 'async)
 (require 'dash)
+(require 'desktop)
 (require 'json)
 (require 'org)
 (require 'subr-x)
@@ -153,15 +157,17 @@
   "Buffer name for error report when fail to read server response.")
 
 (defconst stock-tracker--note-string
-  "** To add     stock, use [ *a* ]
+  (purecopy
+   "** To add     stock, use [ *a* ]
 ** To remove  stock, use [ *d* ]
 ** To refresh stock, use [ *g* ]
-
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
-** Stocks listed in US,                    e.g: GOOG
-"
+** Stocks listed in US,                    e.g: GOOG")
   "Stock-Tracker note string.")
+
+(defvar stock-tracker-list-of-stocks nil
+  "List of stock to monitor.")
 
 (defvar stock-tracker--refresh-timer nil
   "Stock-Tracker refresh timer.")
@@ -668,6 +674,8 @@ It defaults to a comma."
         show-trailing-whitespace nil)
   (setq-local line-move-visual t)
   (setq-local view-read-only nil)
+  (setq desktop-globals-to-save
+        (add-to-list 'desktop-globals-to-save 'stock-tracker-list-of-stocks))
   (add-hook 'kill-buffer-hook #'stock-tracker--cancel-timer-on-exit)
   (run-mode-hooks))
 
