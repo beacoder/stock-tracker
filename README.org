@@ -44,8 +44,8 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 ** Features
 
-- [x] Navigate to the caller file location.
-- [x] Support cache when searching for callers.
+- [x] Support CHN, US stocks.
+- [x] Support asynchronous data fetching.
 
 ** License
 
