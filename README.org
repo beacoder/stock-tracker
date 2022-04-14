@@ -41,6 +41,12 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 - Stocks listed in SZ, prefix with [ *1* ],   e.g: 1002024
 - Stocks listed in US,                    e.g: GOOG
 
+
+** Features
+
+- [x] Navigate to the caller file location.
+- [x] Support cache when searching for callers.
+
 ** License
 
 [[file:LICENSE][MIT LICENSE]]. Copyright (c) 2019-2022 Huming Chen <chenhuming@gmail.com>
