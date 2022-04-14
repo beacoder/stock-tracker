@@ -4,7 +4,7 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.2
+;; Version: 0.1.3
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -37,9 +37,8 @@
 ;; 0.1.1 Removed asynchronous handling to make logic simpler
 ;;       Added "quote.cnbc.com" api to get US stock information
 ;;       Remove HK stock, as no available api for now
-;;
 ;; 0.1.2 Support asynchronous stock fetching with async
-;;
+;; 0.1.3 Clean hanging subprocesses periodically
 
 ;;; Code:
 
@@ -157,7 +156,6 @@
   "** To add     stock, use [ *a* ]
 ** To remove  stock, use [ *d* ]
 ** To refresh stock, use [ *g* ]
-
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
 ** Stocks listed in US,                    e.g: GOOG
@@ -166,6 +164,9 @@
 
 (defvar stock-tracker--refresh-timer nil
   "Stock-Tracker refresh timer.")
+
+(defvar stock-tracker--check-timer nil
+  "Stock-Tracker check timer.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpers
@@ -229,6 +230,16 @@ It defaults to a comma."
 (defun stock-tracker--list-to-string (string-list separter)
   "Concat STRING-LIST to a string with SEPARTER."
   (mapconcat #'identity string-list separter))
+
+(defun stock-tracker--kill-hanging-subprocess()
+  "Kill hanging *emacs* subprocess."
+  (dolist (buffer (mapcar #'buffer-name (buffer-list)))
+    (when (string-match "*emacs*" buffer)
+      (when-let ((process (get-buffer-process buffer)))
+        (kill-process process)
+        (sit-for 0.5))
+      (when (get-buffer buffer)
+        (kill-buffer buffer)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Core Functions
@@ -376,15 +387,16 @@ It defaults to a comma."
 (defun stock-tracker--refresh-content (stocks-info)
   "Refresh stocks with STOCKS-INFO."
   (when stocks-info
-    (with-current-buffer (get-buffer-create stock-tracker-buffer-name)
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (stock-tracker-mode)
-        (insert (format "%s\n\n" (concat "* Refresh list of stocks at: [" (current-time-string) "]")))
-        (insert (format "%s\n\n" stock-tracker--note-string))
-        (insert stock-tracker--result-header)
-        (insert stocks-info)
-        (stock-tracker--align-all-tables)))))
+    (save-excursion
+      (with-current-buffer (get-buffer-create stock-tracker-buffer-name)
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (stock-tracker-mode)
+          (insert (format "%s\n\n" (concat "* Refresh list of stocks at: [" (current-time-string) "]")))
+          (insert (format "%s\n\n" stock-tracker--note-string))
+          (insert stock-tracker--result-header)
+          (insert stocks-info)
+          (stock-tracker--align-all-tables))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
@@ -525,16 +537,23 @@ It defaults to a comma."
           (when all-collected-stocks-info
             (stock-tracker--refresh-content (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))))))))
 
-(defun stock-tracker--run-refresh-timer ()
-  "Run stock tracker refresh timer."
-  (setq stock-tracker--refresh-timer
+(defun stock-tracker--run-timers ()
+  "Run stock tracker timers."
+  (setq stock-tracker--check-timer
+        (run-with-timer (* 10 6 5)
+                        (* 10 6 5)
+                        'stock-tracker--kill-hanging-subprocess)
+        stock-tracker--refresh-timer
         (run-with-timer (* 10 stock-tracker-refresh-interval)
                         (* 10 stock-tracker-refresh-interval)
                         'stock-tracker--refresh
                         t)))
 
-(defun stock-tracker--cancel-refresh-timer ()
-  "Cancel stock tracker refresh timer."
+(defun stock-tracker--cancel-timers ()
+  "Cancel stock tracker timers."
+  (when stock-tracker--check-timer
+    (cancel-timer stock-tracker--check-timer)
+    (setq stock-tracker--check-timer nil))
   (when stock-tracker--refresh-timer
     (cancel-timer stock-tracker--refresh-timer)
     (setq stock-tracker--refresh-timer nil)))
@@ -542,7 +561,7 @@ It defaults to a comma."
 (defun stock-tracker--cancel-timer-on-exit ()
   "Cancel timer when stock tracker buffer is being killed."
   (when (eq major-mode 'stock-tracker-mode)
-    (stock-tracker--cancel-refresh-timer)))
+    (stock-tracker--cancel-timers)))
 
 (defun stock-tracker--search (stock)
   "Search STOCK and show result in `stock-tracker-buffer-name' buffer."
@@ -569,8 +588,8 @@ It defaults to a comma."
   (if stock-tracker-list-of-stocks
       (progn
         (stock-tracker--refresh)
-        (stock-tracker--cancel-refresh-timer)
-        (stock-tracker--run-refresh-timer))
+        (stock-tracker--cancel-timers)
+        (stock-tracker--run-timers))
     (and stock (stock-tracker--search stock)))
   (unless (get-buffer-window stock-tracker-buffer-name)
     (switch-to-buffer-other-window stock-tracker-buffer-name)))
