@@ -406,7 +406,7 @@ It defaults to a comma."
         (require 'subr-x)
         (require 'url)
 
-       ;; pass params to subprocess, use string here
+       ;; pass params to subprocess, use literal (string, integer, float) here
        (setq subprocess-chn-stocks-string ,chn-stocks-string
              subprocess-us-stocks-string ,us-stocks-string
              subprocess-kill-delay ,stock-tracker-subprocess-kill-delay)
