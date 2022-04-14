@@ -74,6 +74,11 @@
   :type 'list
   :group 'stock-tracker)
 
+(defcustom stock-tracker-subprocess-kill-delay 12
+  "Kill subprocess in N * 10 SECS."
+  :type 'integer
+  :group 'stock-tracker)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -401,9 +406,10 @@ It defaults to a comma."
         (require 'subr-x)
         (require 'url)
 
-        ;; pass params to subprocess, use string here
-        (setq subprocess-chn-stocks-string ,chn-stocks-string
-              subprocess-us-stocks-string ,us-stocks-string)
+       ;; pass params to subprocess, use string here
+       (setq subprocess-chn-stocks-string ,chn-stocks-string
+             subprocess-us-stocks-string ,us-stocks-string
+             subprocess-kill-delay ,stock-tracker-subprocess-kill-delay)
 
         ;; mininum required functions in subprocess
         (defun stock-tracker--subprocess-api-url (string-tag)
@@ -436,28 +442,34 @@ It defaults to a comma."
             jsons))
 
         ;; make sure subprocess can exit successfully
-        (setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
-        (when (>= emacs-major-version 28)
-          (setq backtrace-on-error-noninteractive nil))
+        (progn
+          (setq kill-buffer-query-functions
+                (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+        
+          (when (>= emacs-major-version 28)
+            (setq backtrace-on-error-noninteractive nil))
+        
+          ;; setup self-destruction timer
+          (run-with-timer (* 10 subprocess-kill-delay) 10 (lambda () (kill-emacs))))
 
         ;; do real business here
         (let ((result '((chn-stock . 0) (us-stock . 0)))
               (chn-result nil)
               (us-result nil))
-      
+
           ;; fetch chn stocks
           (unless (string-empty-p subprocess-chn-stocks-string)
             (push
              (stock-tracker--subprocess-request-synchronously subprocess-chn-stocks-string "chn-stock") chn-result)
             (when chn-result (map-put! result 'chn-stock chn-result)))
-      
+
           ;; fetch us stocks
           (unless (string-empty-p subprocess-us-stocks-string)
             (dolist (us-stock (split-string subprocess-us-stocks-string ","))
               (push
                (stock-tracker--subprocess-request-synchronously us-stock "us-stock") us-result))
             (when us-result (map-put! result 'us-stock us-result)))
-      
+
           result))
 
      ;; What to do when it finishes
