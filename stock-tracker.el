@@ -445,10 +445,10 @@ It defaults to a comma."
         (progn
           (setq kill-buffer-query-functions
                 (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
-        
+
           (when (>= emacs-major-version 28)
             (setq backtrace-on-error-noninteractive nil))
-        
+
           ;; setup self-destruction timer
           (run-with-timer (* 10 subprocess-kill-delay) 10 (lambda () (kill-emacs))))
 
