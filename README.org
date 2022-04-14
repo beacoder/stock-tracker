@@ -47,6 +47,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 - [X] Support CHN, US stocks.
 - [X] Support asynchronous data fetching.
 
+
 ** License
 
 [[file:LICENSE][MIT LICENSE]]. Copyright (c) 2019-2022 Huming Chen <chenhuming@gmail.com>
