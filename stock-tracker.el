@@ -4,8 +4,6 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Package-Version: 20220414.131
-;; Package-Commit: 6ad9c9d39569d89753b2a54ccb5e8636e04c016e
 ;; Version: 0.1.2
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
@@ -39,9 +37,9 @@
 ;; 0.1.1 Removed asynchronous handling to make logic simpler
 ;;       Added "quote.cnbc.com" api to get US stock information
 ;;       Remove HK stock, as no available api for now
-;;
 ;; 0.1.2 Support asynchronous stock fetching with async
-;;
+;; 0.1.3 Clean hanging subprocesses periodically
+;;       Save stock-tracker-list-of-stocks with desktop
 
 ;;; Code:
 
@@ -165,9 +163,6 @@
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
 ** Stocks listed in US,                    e.g: GOOG")
   "Stock-Tracker note string.")
-
-(defvar stock-tracker-list-of-stocks nil
-  "List of stock to monitor.")
 
 (defvar stock-tracker--refresh-timer nil
   "Stock-Tracker refresh timer.")
