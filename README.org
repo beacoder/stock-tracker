@@ -44,8 +44,8 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 ** Features
 
-- [x] Support CHN, US stocks.
-- [x] Support asynchronous data fetching.
+- [X] Support CHN, US stocks.
+- [X] Support asynchronous data fetching.
 
 ** License
 
