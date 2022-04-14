@@ -241,7 +241,8 @@ It defaults to a comma."
       (when-let ((process (get-buffer-process buffer)))
         (kill-process process)
         (sit-for 0.5))
-      (and (null (get-buffer-process buffer))
+      (and (get-buffer buffer)
+           (null (get-buffer-process buffer))
            (kill-buffer buffer)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
