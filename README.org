@@ -47,7 +47,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 ** Todo
 
 - Find new free api to get hk stocks.
-- Inbuffer data update instead of whole refresh.
+- Inbuffer data update instead of whole buffer refresh.
 
 ** License
 
