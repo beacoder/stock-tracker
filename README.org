@@ -44,6 +44,11 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 - Support asynchronous data fetching.
 - Automatically save list of added stocks.
 
+** Todo
+
+- Find new free api to get hk stocks.
+- Inbuffer data update instead of whole refresh.
+
 ** License
 
 [[file:LICENSE][MIT LICENSE]]. Copyright (c) 2019-2022 Huming Chen <chenhuming@gmail.com>
