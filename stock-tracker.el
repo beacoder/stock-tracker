@@ -239,7 +239,7 @@ It defaults to a comma."
   (dolist (buffer (mapcar #'buffer-name (buffer-list)))
     (when (string-match "*emacs*" buffer)
       (when-let ((process (get-buffer-process buffer)))
-        (kill-process process)
+        (delete-process process)
         (sit-for 0.5))
       (and (get-buffer buffer)
            (null (get-buffer-process buffer))
