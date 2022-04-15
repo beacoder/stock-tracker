@@ -239,6 +239,8 @@ It defaults to a comma."
   (dolist (buffer (mapcar #'buffer-name (buffer-list)))
     (when (string-match "*emacs*" buffer)
       (when-let ((process (get-buffer-process buffer)))
+        ;; set the process as killable without query by default
+        (set-process-query-on-exit-flag process nil)
         (delete-process process)
         (sit-for 0.5))
       (and (get-buffer buffer)
