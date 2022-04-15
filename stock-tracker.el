@@ -159,7 +159,6 @@
    "** To add     stock, use [ *a* ]
 ** To remove  stock, use [ *d* ]
 ** To refresh stock, use [ *g* ]
-
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
 ** Stocks listed in US,                    e.g: GOOG")
@@ -311,35 +310,16 @@ It defaults to a comma."
          'stock-code symbol)
       nil)))
 
-(defun stock-tracker--format-response-async (response tag)
-  "Format stock information from RESPONSE with TAG."
+(defun stock-tracker--format-response (response tag &optional asynchronously)
+  "Format stock information from RESPONSE with TAG, with optional ASYNCHRONOUSLY."
   (let ((jsons response)
         (result "") result-list)
     (catch 'break
-      (when (cl-typep tag 'stock-tracker--chn-symbol)
-        (setq jsons (car jsons)))
+      ;; handle difference in async handling
+      (and asynchronously
+           (cl-typep tag 'stock-tracker--chn-symbol)
+           (setq jsons (car jsons)))
 
-      (dolist (json jsons)
-        (if (cl-typep tag 'stock-tracker--chn-symbol)
-            (setq json (cdr json))
-          ;; for us-stock, there's only one stock data here
-          (setq json jsons))
-
-        (when-let ((info (stock-tracker--format-json json tag)))
-          (push info result-list))
-
-        ;; for us-stock, there's only one stock data here
-        (unless (cl-typep tag 'stock-tracker--chn-symbol)
-          (throw 'break t))))
-    (when result-list
-      (setq result (stock-tracker--list-to-string (reverse result-list) "")))
-    result))
-
-(defun stock-tracker--format-response (response tag)
-  "Format stock information from RESPONSE with TAG."
-  (let ((jsons response)
-        (result "") result-list)
-    (catch 'break
       (dolist (json jsons)
         (if (cl-typep tag 'stock-tracker--chn-symbol)
             (setq json (cdr json))
@@ -467,13 +447,13 @@ It defaults to a comma."
 
            ;; format chn stocks
            (unless (numberp chn-result)
-             (push (stock-tracker--format-response-async chn-result chn-symbol)
+             (push (stock-tracker--format-response chn-result chn-symbol t)
                    all-collected-stocks-info))
 
            ;; format us stocks
            (unless (numberp us-result)
              (dolist (us-stock us-result)
-               (push (stock-tracker--format-response us-stock us-symbol)
+               (push (stock-tracker--format-response us-stock us-symbol t)
                      all-collected-stocks-info)))
 
            ;; populate stocks
