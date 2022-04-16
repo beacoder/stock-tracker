@@ -4,6 +4,8 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
+;; Package-Version: 20220415.538
+;; Package-Commit: 9612f88b2642c66bfdb76cf9cf45d276f56b3cb5
 ;; Version: 0.1.3
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
@@ -49,6 +51,7 @@
 (require 'json)
 (require 'org)
 (require 'subr-x)
+(require 'text-property-search)
 (require 'url)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -115,7 +118,8 @@
 (cl-defmethod stock-tracker--result-fields ((s stock-tracker--chn-symbol))
   "Stock-Tracker result fields for S from CHN."
   (ignore s)
-  '((symbol . symbol)
+  '((code . code)
+    (symbol . symbol)
     (name . name)
     (price . price)
     (percent . percent)
@@ -129,7 +133,8 @@
 (cl-defmethod stock-tracker--result-fields ((s stock-tracker--us-symbol))
   "Stock-Tracker result fields for S from US."
   (ignore s)
-  '((symbol . symbol)
+  '((code . symbol)
+    (symbol . symbol)
     (name . name)
     (price . last)
     (percent . change_pct)
@@ -276,18 +281,20 @@ It defaults to a comma."
   "Format stock information from JSON with TAG."
   (let ((result-filds (stock-tracker--result-fields tag))
         symbol name price percent updown
-        high low volume open yestclose)
+        high low volume open yestclose code)
+
     (setq
-     symbol    (assoc-default (map-elt result-filds 'symbol)    json)
-     name      (assoc-default (map-elt result-filds 'name)      json) ; chinese-word failed to align
-     price     (assoc-default (map-elt result-filds 'price)     json)
-     percent   (assoc-default (map-elt result-filds 'percent)   json)
-     updown    (assoc-default (map-elt result-filds 'updown)    json)
-     open      (assoc-default (map-elt result-filds 'open)      json)
-     yestclose (assoc-default (map-elt result-filds 'yestclose) json)
-     high      (assoc-default (map-elt result-filds 'high)      json)
-     low       (assoc-default (map-elt result-filds 'low)       json)
-     volume    (assoc-default (map-elt result-filds 'volume)    json))
+      code      (assoc-default (map-elt result-filds 'code)      json)
+      symbol    (assoc-default (map-elt result-filds 'symbol)    json)
+      name      (assoc-default (map-elt result-filds 'name)      json) ; chinese-word failed to align
+      price     (assoc-default (map-elt result-filds 'price)     json)
+      percent   (assoc-default (map-elt result-filds 'percent)   json)
+      updown    (assoc-default (map-elt result-filds 'updown)    json)
+      open      (assoc-default (map-elt result-filds 'open)      json)
+      yestclose (assoc-default (map-elt result-filds 'yestclose) json)
+      high      (assoc-default (map-elt result-filds 'high)      json)
+      low       (assoc-default (map-elt result-filds 'low)       json)
+      volume    (assoc-default (map-elt result-filds 'volume)    json))
 
     ;; sanity check
     (unless (and symbol name price percent updown open yestclose high low volume)
@@ -296,24 +303,20 @@ It defaults to a comma."
       (throw 'break 0))
 
     ;; formating
-    (when (stringp percent)
-      (setq percent (string-to-number percent)))
-    (when (stringp volume)
-      (setq volume (string-to-number volume)))
-    (when (stringp yestclose)
-      (setq yestclose (string-to-number yestclose)))
+    (and (stringp percent)   (setq percent (string-to-number percent)))
+    (and (stringp volume)    (setq volume (string-to-number volume)))
+    (and (stringp yestclose) (setq yestclose (string-to-number yestclose)))
 
     ;; some extra handling
-    (when (cl-typep tag 'stock-tracker--chn-symbol)
-      (setq percent (* 100 percent)))
+    (and (cl-typep tag 'stock-tracker--chn-symbol) (setq percent (* 100 percent)))
 
     ;; construct data for display
-    (if symbol
-        (propertize
-         (format stock-tracker--result-item-format symbol name price percent updown
-                 high low (stock-tracker--add-number-grouping volume ",") open yestclose)
-         'stock-code symbol)
-      nil)))
+    (and symbol
+         (propertize
+          (format stock-tracker--result-item-format symbol
+                  name price percent updown high low
+                  (stock-tracker--add-number-grouping volume ",")
+                  open yestclose) 'stock-code code))))
 
 (defun stock-tracker--format-response (response tag &optional asynchronously)
   "Format stock information from RESPONSE with TAG, with optional ASYNCHRONOUSLY."
@@ -337,8 +340,8 @@ It defaults to a comma."
         ;; for us-stock, there's only one stock data here
         (unless (cl-typep tag 'stock-tracker--chn-symbol)
           (throw 'break t))))
-    (when result-list
-      (setq result (stock-tracker--list-to-string (reverse result-list) "")))
+    (and result-list
+         (setq result (stock-tracker--list-to-string (reverse result-list) "")))
     result))
 
 (defun stock-tracker--refresh-content (stocks-info)
@@ -538,8 +541,7 @@ It defaults to a comma."
 (defun stock-tracker-add-stock ()
   "Add new stock in table."
   (interactive)
-  (let* ((orgin-read-only buffer-read-only)
-         (stock (format "%s" (read-from-minibuffer "stock? ")))
+  (let* ((stock (format "%s" (read-from-minibuffer "stock? ")))
          (tag
           (if (zerop (string-to-number stock))
               (make-stock-tracker--us-symbol)
@@ -549,34 +551,35 @@ It defaults to a comma."
                 (recved-stocks-info
                  (stock-tracker--format-response (stock-tracker--request-synchronously stock tag) tag))
                 (success (not (string= "" recved-stocks-info))))
-      (read-only-mode -1)
-      (insert recved-stocks-info)
-      (stock-tracker--align-all-tables)
-      (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
-      (push stock stock-tracker-list-of-stocks)
-      (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks)))
-    (when orgin-read-only (read-only-mode 1))
-    (stock-tracker--refresh)))
+      (with-current-buffer stock-tracker--buffer-name
+        (read-only-mode -1)
+        (goto-char (point-max))
+        (insert recved-stocks-info)
+        (stock-tracker--align-all-tables)
+        (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
+        (push stock stock-tracker-list-of-stocks)
+        (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
+        (read-only-mode 1)
+        (stock-tracker--refresh)))))
 
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
   (interactive)
-  (save-mark-and-excursion
-    (let ((orgin-read-only buffer-read-only)
-          end-of-line-pos)
-      (end-of-line)
-      (setq end-of-line-pos (point))
-      (beginning-of-line)
-      (while (and (< (point) end-of-line-pos)
-                  (not (get-text-property (point) 'stock-code)))
-        (forward-char))
-      (when-let (stock-code (get-text-property (point) 'stock-code))
-        (read-only-mode -1)
-        (org-table-kill-row)
-        (setq stock-tracker-list-of-stocks
-              (delete stock-code stock-tracker-list-of-stocks))
-        (when orgin-read-only (read-only-mode 1))
-        (stock-tracker--refresh)))))
+  (save-excursion
+    (with-current-buffer stock-tracker--buffer-name
+      (let ((list-of-stocks stock-tracker-list-of-stocks)
+            code tmp-stocks)
+        (beginning-of-line)
+        (when-let (stock-code (text-property-search-forward 'stock-code))
+          (while (setq code (pop list-of-stocks))
+            (unless (equal (upcase code) (upcase (prop-match-value stock-code)))
+              (push code tmp-stocks)))
+          (when tmp-stocks
+            (setq stock-tracker-list-of-stocks (reverse tmp-stocks))
+            (read-only-mode -1)
+            (org-table-kill-row)
+            (read-only-mode 1))
+          (stock-tracker--refresh))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
