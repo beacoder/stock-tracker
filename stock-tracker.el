@@ -4,8 +4,6 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Package-Version: 20220415.538
-;; Package-Commit: 9612f88b2642c66bfdb76cf9cf45d276f56b3cb5
 ;; Version: 0.1.3
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
