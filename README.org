@@ -39,7 +39,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 ** Snapshot
 
-./snapshot.png
+[[snapshot.png][file:snapshot.png]]
 
 ** Features
 
