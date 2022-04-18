@@ -37,6 +37,9 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 - Stocks listed in SZ, prefix with [ *1* ],   e.g: 1002024
 - Stocks listed in US,                    e.g: GOOG
 
+** Snapshot
+
+./snapshot.png
 
 ** Features
 
