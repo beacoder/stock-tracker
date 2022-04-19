@@ -350,7 +350,7 @@ It defaults to a comma."
         (let ((inhibit-read-only t))
           (erase-buffer)
           (stock-tracker-mode)
-          (insert (format "%s\n\n" (concat "* Refresh list of stocks at: [" (current-time-string) "]")))
+          (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
           (insert (format "%s\n\n" stock-tracker--note-string))
           (insert stock-tracker--result-header)
           (insert stocks-info)
