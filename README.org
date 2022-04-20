@@ -46,9 +46,9 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 #+END_SRC
 
-** Snapshot
+** Screenshot
 
-[[snapshot.png][file:snapshot.png]]
+[[screenshot.png][file:screenshot.png]]
 
 ** Features
 
