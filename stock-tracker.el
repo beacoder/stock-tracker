@@ -380,7 +380,8 @@ It defaults to a comma."
           (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
           (insert (format "%s\n\n" stock-tracker--note-string))
           (insert stock-tracker--result-header)
-          (dolist (info stocks-info) (insert (format "%s|-\n" info)))
+          (dolist (info stocks-info) (insert info))
+          (insert "|-\n")
           (stock-tracker--align-all-tables)
           (stock-tracker--colorize-content))))))
 
