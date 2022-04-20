@@ -40,7 +40,7 @@
 ;; 0.1.2 Support asynchronous stock fetching with async
 ;; 0.1.3 Clean hanging subprocesses periodically
 ;;       Save stock-tracker-list-of-stocks with desktop
-;; 0.1.4 Fix can't add and remove issue
+;; 0.1.4 Fix can't add and remove stock issue
 ;;       Colorize stock based on updown
 
 ;;; Code:
