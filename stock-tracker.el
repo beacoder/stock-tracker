@@ -4,7 +4,7 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.3
+;; Version: 0.1.4
 ;; Created: 2019-08-18
 ;; Keywords: convenience, chinese, stock
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -40,6 +40,8 @@
 ;; 0.1.2 Support asynchronous stock fetching with async
 ;; 0.1.3 Clean hanging subprocesses periodically
 ;;       Save stock-tracker-list-of-stocks with desktop
+;; 0.1.4 Fix can't add and remove issue
+;;       Colorize stock based on updown
 
 ;;; Code:
 
@@ -151,11 +153,11 @@
   "Stock-Tracker result Buffer name.")
 
 (defconst stock-tracker--result-header
-  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n|-\n"
+  "|-\n| symbol | name | price | percent | updown | high | low | volume | open | yestclose |\n"
   "Stock-Tracker result header.")
 
 (defconst stock-tracker--result-item-format
-  "| %s | %s | %s | %.2f %% | %s | %s | %s | %s | %s | %.2f |\n|-\n"
+  "|-\n| %s | %s | %s | %.2f %% | %.2f | %s | %s | %s | %s | %.2f |\n"
   "Stock-Tracker result item format.")
 
 (defconst stock-tracker--response-buffer "*api-response*"
@@ -278,7 +280,7 @@ It defaults to a comma."
 (defun stock-tracker--format-json (json tag)
   "Format stock information from JSON with TAG."
   (let ((result-filds (stock-tracker--result-fields tag))
-        symbol name price percent updown
+        symbol name price percent (updown 0) color
         high low volume open yestclose code)
 
     (setq
@@ -304,6 +306,10 @@ It defaults to a comma."
     (and (stringp percent)   (setq percent (string-to-number percent)))
     (and (stringp volume)    (setq volume (string-to-number volume)))
     (and (stringp yestclose) (setq yestclose (string-to-number yestclose)))
+    (and (stringp updown)    (setq updown (string-to-number updown)))
+
+    ;; color setting
+    (if (> updown 0) (setq color "red") (setq color "green"))
 
     ;; some extra handling
     (and (cl-typep tag 'stock-tracker--chn-symbol) (setq percent (* 100 percent)))
@@ -314,7 +320,9 @@ It defaults to a comma."
           (format stock-tracker--result-item-format symbol
                   name price percent updown high low
                   (stock-tracker--add-number-grouping volume ",")
-                  open yestclose) 'stock-code code))))
+                  open yestclose)
+          'stock-code  code
+          'stock-color color))))
 
 (defun stock-tracker--format-response (response tag &optional asynchronously)
   "Format stock information from RESPONSE with TAG, with optional ASYNCHRONOUSLY."
@@ -342,6 +350,24 @@ It defaults to a comma."
          (setq result (stock-tracker--list-to-string (reverse result-list) "")))
     result))
 
+(defun stock-tracker--colorize-content ()
+  "Colorize stock base on updown."
+  (let ((ended nil) pos beg end (color "red"))
+    (goto-char (point-min))
+    (while (not ended)
+      (setq pos (next-single-property-change (point) 'stock-code)
+            beg pos end beg
+            color (and pos (get-text-property pos 'stock-color nil)))
+      (if (not pos) (setq ended t) ; done
+        (goto-char pos)
+        (setq end (line-end-position)))
+      (while (and end (<= (point) end) (re-search-forward "|" nil 'move))
+        (and beg (1- (point))
+             ;; (propertize "Red Text" 'font-lock-face '(:foreground "red"))
+             ;; propertize doesn't work in org-table-cell, so use overlay here
+             (overlay-put (make-overlay beg (1- (point))) 'face `(:foreground ,color))
+             (setq beg (point)))))))
+
 (defun stock-tracker--refresh-content (stocks-info)
   "Refresh stocks with STOCKS-INFO."
   (when stocks-info
@@ -350,11 +376,13 @@ It defaults to a comma."
         (let ((inhibit-read-only t))
           (erase-buffer)
           (stock-tracker-mode)
+          (font-lock-mode 1)
           (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
           (insert (format "%s\n\n" stock-tracker--note-string))
           (insert stock-tracker--result-header)
-          (insert stocks-info)
-          (stock-tracker--align-all-tables))))))
+          (dolist (info stocks-info) (insert (format "%s|-\n" info)))
+          (stock-tracker--align-all-tables)
+          (stock-tracker--colorize-content))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
@@ -376,10 +404,10 @@ It defaults to a comma."
         (require 'subr-x)
         (require 'url)
 
-       ;; pass params to subprocess, use literal (string, integer, float) here
-       (setq subprocess-chn-stocks-string ,chn-stocks-string
-             subprocess-us-stocks-string ,us-stocks-string
-             subprocess-kill-delay ,stock-tracker-subprocess-kill-delay)
+        ;; pass params to subprocess, use literal (string, integer, float) here
+        (setq subprocess-chn-stocks-string ,chn-stocks-string
+              subprocess-us-stocks-string ,us-stocks-string
+              subprocess-kill-delay ,stock-tracker-subprocess-kill-delay)
 
         ;; mininum required functions in subprocess
         (defun stock-tracker--subprocess-api-url (string-tag)
@@ -465,10 +493,7 @@ It defaults to a comma."
 
            ;; populate stocks
            (when all-collected-stocks-info
-             (setq all-collected-stocks-string
-                   (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))
-             (unless (string-empty-p all-collected-stocks-string)
-               (stock-tracker--refresh-content all-collected-stocks-string)))))))))
+             (stock-tracker--refresh-content (reverse all-collected-stocks-info)))))))))
 
 (defun stock-tracker--refresh (&optional asynchronously)
   "Refresh list of stocks ASYNCHRONOUSLY or not."
@@ -494,7 +519,7 @@ It defaults to a comma."
              (stock-tracker--format-response (stock-tracker--request-synchronously us-stock us-symbol) us-symbol)
              all-collected-stocks-info))
           (when all-collected-stocks-info
-            (stock-tracker--refresh-content (stock-tracker--list-to-string (reverse all-collected-stocks-info) ""))))))))
+            (stock-tracker--refresh-content (reverse all-collected-stocks-info))))))))
 
 (defun stock-tracker--run-timers ()
   "Run stock tracker timers."
