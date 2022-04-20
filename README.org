@@ -27,7 +27,6 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 ;; Refresh stock price every 5*10 secs
 (setq stock-tracker-refresh-interval 5)
 
-
 ;; Customize stocks
 (customize-set-variable 'stock-tracker-list-of-stocks
                           '("0688516"
