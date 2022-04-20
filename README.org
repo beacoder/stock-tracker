@@ -55,6 +55,7 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 - Support CHN (SS, SZ), US stocks.
 - Support asynchronous data fetching.
 - Automatically save list of added stocks.
+- Colorize stocks based on their price.
 
 ** Todo
 
