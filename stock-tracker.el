@@ -6,7 +6,7 @@
 ;; URL: https://github.com/beacoder/stock-tracker
 ;; Version: 0.1.4
 ;; Created: 2019-08-18
-;; Keywords: convenience, chinese, stock
+;; Keywords: convenience, stock, finance
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
 
 ;; This file is not part of GNU Emacs.
@@ -41,7 +41,7 @@
 ;; 0.1.3 Clean hanging subprocesses periodically
 ;;       Save stock-tracker-list-of-stocks with desktop
 ;; 0.1.4 Fix can't add and remove stock issue
-;;       Colorize stock based on updown
+;;       Colorize stock based on price
 
 ;;; Code:
 
