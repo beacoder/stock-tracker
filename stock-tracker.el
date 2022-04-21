@@ -475,8 +475,7 @@ It defaults to a comma."
      (lambda (result)
        (let ((chn-result (cdr (assoc 'chn-stock result)))
              (us-result (cdr (assoc 'us-stock result)))
-             (all-collected-stocks-info nil)
-             (all-collected-stocks-string ""))
+             (all-collected-stocks-info nil))
 
          ;; process stock data
          (with-temp-message "Fetching stock done"
