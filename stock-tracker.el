@@ -370,20 +370,21 @@ It defaults to a comma."
 
 (defun stock-tracker--refresh-content (stocks-info)
   "Refresh stocks with STOCKS-INFO."
-  (when stocks-info
-    (save-excursion
-      (with-current-buffer (get-buffer-create stock-tracker--buffer-name)
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (stock-tracker-mode)
-          (font-lock-mode 1)
-          (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
-          (insert (format "%s\n\n" stock-tracker--note-string))
-          (insert stock-tracker--result-header)
-          (dolist (info stocks-info) (insert info))
-          (insert "|-\n")
-          (stock-tracker--align-all-tables)
-          (stock-tracker--colorize-content))))))
+  (and stocks-info
+       (null (seq-empty-p stocks-info))
+       (save-mark-and-excursion
+         (with-current-buffer (get-buffer-create stock-tracker--buffer-name)
+           (let ((inhibit-read-only t))
+             (erase-buffer)
+             (stock-tracker-mode)
+             (font-lock-mode 1)
+             (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
+             (insert (format "%s\n\n" stock-tracker--note-string))
+             (insert stock-tracker--result-header)
+             (dolist (info stocks-info) (insert info))
+             (insert "|-\n")
+             (stock-tracker--align-all-tables)
+             (stock-tracker--colorize-content))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
@@ -589,7 +590,7 @@ It defaults to a comma."
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
   (interactive)
-  (save-excursion
+  (save-mark-and-excursion
     (with-current-buffer stock-tracker--buffer-name
       (let ((list-of-stocks stock-tracker-list-of-stocks)
             code tmp-stocks)
