@@ -50,6 +50,7 @@
 (require 'desktop)
 (require 'json)
 (require 'org)
+(require 'seq)
 (require 'subr-x)
 (require 'text-property-search)
 (require 'url)
