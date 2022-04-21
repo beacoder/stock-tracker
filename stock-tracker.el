@@ -4,7 +4,7 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.4
+;; Version: 0.1.5
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -42,6 +42,7 @@
 ;;       Save stock-tracker-list-of-stocks with desktop
 ;; 0.1.4 Fix can't add and remove stock issue
 ;;       Colorize stock based on price
+;; 0.1.5 Add timestamp to skip outdated data.
 
 ;;; Code:
 
@@ -74,7 +75,7 @@
   :type 'list
   :group 'stock-tracker)
 
-(defcustom stock-tracker-subprocess-kill-delay 6
+(defcustom stock-tracker-subprocess-kill-delay 12
   "Kill subprocess in N * 10 SECS."
   :type 'integer
   :group 'stock-tracker)
@@ -180,6 +181,9 @@
 
 (defvar stock-tracker--check-timer nil
   "Stock-Tracker check timer.")
+
+(defvar stock-tracker--data-timestamp (time-to-seconds)
+  "Stock-Tracker latest data timestamp.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpers
@@ -392,7 +396,8 @@ It defaults to a comma."
   (let* ((chn-stocks-string (mapconcat #'identity chn-stocks ","))
          (us-stocks-string (mapconcat #'identity us-stocks ","))
          (chn-symbol (make-stock-tracker--chn-symbol))
-         (us-symbol (make-stock-tracker--us-symbol)))
+         (us-symbol (make-stock-tracker--us-symbol))
+         (data-retrieve-timestamp (time-to-seconds)))
 
     (with-temp-message "Fetching stock data async ..."
       (sit-for 1))
@@ -479,23 +484,31 @@ It defaults to a comma."
              (us-result (cdr (assoc 'us-stock result)))
              (all-collected-stocks-info nil))
 
-         ;; process stock data
-         (with-temp-message "Fetching stock done"
+         (if (< data-retrieve-timestamp stock-tracker--data-timestamp)
 
-           ;; format chn stocks
-           (unless (numberp chn-result)
-             (push (stock-tracker--format-response chn-result chn-symbol t)
-                   all-collected-stocks-info))
+             (with-temp-message "Outdated data received !!!"
+               (sit-for 1))
 
-           ;; format us stocks
-           (unless (numberp us-result)
-             (dolist (us-stock us-result)
-               (push (stock-tracker--format-response us-stock us-symbol t)
-                     all-collected-stocks-info)))
+           ;; update timestamp
+           (setq stock-tracker--data-timestamp data-retrieve-timestamp)
 
-           ;; populate stocks
-           (when all-collected-stocks-info
-             (stock-tracker--refresh-content (reverse all-collected-stocks-info)))))))))
+           ;; process stock data
+           (with-temp-message "Fetching stock done"
+
+             ;; format chn stocks
+             (unless (numberp chn-result)
+               (push (stock-tracker--format-response chn-result chn-symbol t)
+                     all-collected-stocks-info))
+
+             ;; format us stocks
+             (unless (numberp us-result)
+               (dolist (us-stock us-result)
+                 (push (stock-tracker--format-response us-stock us-symbol t)
+                       all-collected-stocks-info)))
+
+             ;; populate stocks
+             (when all-collected-stocks-info
+               (stock-tracker--refresh-content (reverse all-collected-stocks-info))))))))))
 
 (defun stock-tracker--refresh (&optional asynchronously)
   "Refresh list of stocks ASYNCHRONOUSLY or not."
@@ -521,13 +534,14 @@ It defaults to a comma."
              (stock-tracker--format-response (stock-tracker--request-synchronously us-stock us-symbol) us-symbol)
              all-collected-stocks-info))
           (when all-collected-stocks-info
-            (stock-tracker--refresh-content (reverse all-collected-stocks-info))))))))
+            (stock-tracker--refresh-content (reverse all-collected-stocks-info)))
+          (setq stock-tracker--data-timestamp (time-to-seconds)))))))
 
 (defun stock-tracker--run-timers ()
   "Run stock tracker timers."
   (setq stock-tracker--check-timer
-        (run-with-timer (* 60 3)
-                        (* 60 3)
+        (run-with-timer (* 10 6 3)
+                        (* 10 6 3)
                         'stock-tracker--kill-hanging-subprocess)
         stock-tracker--refresh-timer
         (run-with-timer (* 10 stock-tracker-refresh-interval)
