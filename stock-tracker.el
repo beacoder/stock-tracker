@@ -4,6 +4,8 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
+;; Package-Version: 20220421.1537
+;; Package-Commit: 2ecf0a83b749096c5a3988a6cf00c080ae676555
 ;; Version: 0.1.5
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
@@ -212,8 +214,9 @@ If there's a string at point, use it instead of prompt."
       suggested)))
 
 (defun stock-tracker--align-all-tables ()
-  "Align all org tables."
-  (org-table-map-tables 'org-table-align t))
+  "Align all org tables and do colorization."
+  (org-table-map-tables 'org-table-align t)
+  (stock-tracker--colorize-content))
 
 ;;; @see https://www.emacswiki.org/emacs/AddCommasToNumbers
 (defun stock-tracker--add-number-grouping (number &optional separator)
@@ -388,8 +391,7 @@ It defaults to a comma."
              (insert stock-tracker--result-header)
              (dolist (info stocks-info) (insert info))
              ;; (insert "|-\n")
-             (stock-tracker--align-all-tables)
-             (stock-tracker--colorize-content))))))
+             (stock-tracker--align-all-tables))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
@@ -596,7 +598,6 @@ It defaults to a comma."
         (goto-char (point-max))
         (insert recved-stocks-info)
         (stock-tracker--align-all-tables)
-        (stock-tracker--colorize-content)
         (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
         (push stock stock-tracker-list-of-stocks)
         (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
@@ -621,7 +622,6 @@ It defaults to a comma."
             (re-search-backward "|-" nil 'move)
             (org-table-kill-row)
             (stock-tracker--align-all-tables)
-            (stock-tracker--colorize-content)
             (read-only-mode 1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
