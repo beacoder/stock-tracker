@@ -170,6 +170,7 @@
    "** To add     stock, use [ *a* ]
 ** To remove  stock, use [ *d* ]
 ** To refresh stock, use [ *g* ]
+
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
 ** Stocks listed in US,                    e.g: GOOG")
