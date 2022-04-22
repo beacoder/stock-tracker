@@ -42,7 +42,7 @@
 ;;       Save stock-tracker-list-of-stocks with desktop
 ;; 0.1.4 Fix can't add and remove stock issue
 ;;       Colorize stock based on price
-;; 0.1.5 Add timestamp to skip outdated data.
+;; 0.1.5 Add timestamp to skip outdated data
 ;;       Fix empty line generated during adding/removing stocks
 ;;       Restore original position after refreshing stocks
 
