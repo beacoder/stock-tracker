@@ -380,7 +380,8 @@ It defaults to a comma."
        (null (seq-empty-p stocks-info))
        (save-mark-and-excursion
          (with-current-buffer (get-buffer-create stock-tracker--buffer-name)
-           (let ((inhibit-read-only t))
+           (let ((inhibit-read-only t)
+                 (origin (point)))
              (erase-buffer)
              (stock-tracker-mode)
              (font-lock-mode 1)
@@ -389,7 +390,8 @@ It defaults to a comma."
              (insert stock-tracker--result-header)
              (dolist (info stocks-info) (insert info))
              ;; (insert "|-\n")
-             (stock-tracker--align-colorize-tables))))))
+             (stock-tracker--align-all-tables)
+             (goto-char origin))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
