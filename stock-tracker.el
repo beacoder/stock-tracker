@@ -170,7 +170,6 @@
    "** To add     stock, use [ *a* ]
 ** To remove  stock, use [ *d* ]
 ** To refresh stock, use [ *g* ]
-
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
 ** Stocks listed in US,                    e.g: GOOG")
@@ -356,7 +355,7 @@ It defaults to a comma."
     result))
 
 (defun stock-tracker--colorize-content ()
-  "Colorize stock base on updown."
+  "Colorize stock base on price."
   (let ((ended nil) pos beg end (color "red"))
     (goto-char (point-min))
     (while (not ended)
@@ -387,7 +386,7 @@ It defaults to a comma."
              (insert (format "%s\n\n" stock-tracker--note-string))
              (insert stock-tracker--result-header)
              (dolist (info stocks-info) (insert info))
-             (insert "|-\n")
+             ;; (insert "|-\n")
              (stock-tracker--align-all-tables)
              (stock-tracker--colorize-content))))))
 
@@ -596,11 +595,11 @@ It defaults to a comma."
         (goto-char (point-max))
         (insert recved-stocks-info)
         (stock-tracker--align-all-tables)
+        (stock-tracker--colorize-content)
         (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
         (push stock stock-tracker-list-of-stocks)
         (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
-        (read-only-mode 1)
-        (stock-tracker--refresh)))))
+        (read-only-mode 1)))))
 
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
@@ -618,8 +617,11 @@ It defaults to a comma."
             (setq stock-tracker-list-of-stocks (reverse tmp-stocks))
             (read-only-mode -1)
             (org-table-kill-row)
-            (read-only-mode 1))
-          (stock-tracker--refresh))))))
+            (re-search-backward "|-" nil 'move)
+            (org-table-kill-row)
+            (stock-tracker--align-all-tables)
+            (stock-tracker--colorize-content)
+            (read-only-mode 1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
