@@ -392,7 +392,7 @@ It defaults to a comma."
              (insert stock-tracker--result-header)
              (dolist (info stocks-info) (insert info))
              ;; (insert "|-\n")
-             (stock-tracker--align-all-tables)
+             (stock-tracker--align-colorize-tables)
              (goto-char origin))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
