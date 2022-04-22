@@ -211,7 +211,7 @@ If there's a string at point, use it instead of prompt."
         (read-from-minibuffer final-prompt nil nil nil nil suggested)
       suggested)))
 
-(defun stock-tracker--align-all-tables ()
+(defun stock-tracker--align-colorize-tables ()
   "Align all org tables and do colorization."
   (org-table-map-tables 'org-table-align t)
   (stock-tracker--colorize-content))
@@ -389,7 +389,7 @@ It defaults to a comma."
              (insert stock-tracker--result-header)
              (dolist (info stocks-info) (insert info))
              ;; (insert "|-\n")
-             (stock-tracker--align-all-tables))))))
+             (stock-tracker--align-colorize-tables))))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
@@ -595,7 +595,7 @@ It defaults to a comma."
         (read-only-mode -1)
         (goto-char (point-max))
         (insert recved-stocks-info)
-        (stock-tracker--align-all-tables)
+        (stock-tracker--align-colorize-tables)
         (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
         (push stock stock-tracker-list-of-stocks)
         (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
@@ -619,7 +619,7 @@ It defaults to a comma."
             (org-table-kill-row)
             (re-search-backward "|-" nil 'move)
             (org-table-kill-row)
-            (stock-tracker--align-all-tables)
+            (stock-tracker--align-colorize-tables)
             (read-only-mode 1)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
