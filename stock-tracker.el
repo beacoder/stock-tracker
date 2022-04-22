@@ -380,20 +380,19 @@ It defaults to a comma."
   "Refresh stocks with STOCKS-INFO."
   (and stocks-info
        (null (seq-empty-p stocks-info))
-       (save-mark-and-excursion
-         (with-current-buffer (get-buffer-create stock-tracker--buffer-name)
-           (let ((inhibit-read-only t)
-                 (origin (point)))
-             (erase-buffer)
-             (stock-tracker-mode)
-             (font-lock-mode 1)
-             (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
-             (insert (format "%s\n\n" stock-tracker--note-string))
-             (insert stock-tracker--result-header)
-             (dolist (info stocks-info) (insert info))
-             ;; (insert "|-\n")
-             (stock-tracker--align-colorize-tables)
-             (goto-char origin))))))
+       (with-current-buffer (get-buffer-create stock-tracker--buffer-name)
+         (let ((inhibit-read-only t)
+               (origin (point)))
+           (erase-buffer)
+           (stock-tracker-mode)
+           (font-lock-mode 1)
+           (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
+           (insert (format "%s\n\n" stock-tracker--note-string))
+           (insert stock-tracker--result-header)
+           (dolist (info stocks-info) (insert info))
+           ;; (insert "|-\n")
+           (stock-tracker--align-colorize-tables)
+           (goto-char origin)))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
