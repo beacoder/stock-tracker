@@ -182,7 +182,7 @@
 (defconst stock-tracker--note-string
   (purecopy
    "** Add     stock, use [ *a* ]
-** Remove  stock, use [ *d* ]
+** Delete  stock, use [ *d* ]
 ** Start refresh, use [ *g* ]
 ** Stop  refresh, use [ *s* ]
 
