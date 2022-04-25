@@ -4,7 +4,7 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.5
+;; Version: 0.1.6
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -46,6 +46,8 @@
 ;;       Fix empty line generated during adding/removing stocks
 ;;       Restore original position after refreshing stocks
 ;;       Disable logging by default
+;; 0.1.6 Add stock-tracker-stop-refresh
+;;       Add refresh state
 
 ;;; Code:
 
@@ -173,11 +175,16 @@
 (defconst stock-tracker--response-buffer "*api-response*"
   "Buffer name for error report when fail to read server response.")
 
+(defconst stock-tracker--header-string
+  "* Refresh stocks at: [ %current-time% ], refresh is: [ %refresh-state% ]"
+  "Stock-Tracker header string.")
+
 (defconst stock-tracker--note-string
   (purecopy
-   "** To add     stock, use [ *a* ]
-** To remove  stock, use [ *d* ]
-** To refresh stock, use [ *g* ]
+   "** Add     stock, use [ *a* ]
+** Remove  stock, use [ *d* ]
+** Start refresh, use [ *g* ]
+** Stop  refresh, use [ *s* ]
 
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
@@ -192,6 +199,9 @@
 
 (defvar stock-tracker--data-timestamp (time-to-seconds)
   "Stock-Tracker latest data timestamp.")
+
+(defvar stock-tracker--data nil
+  "Stock-Tracker latest data.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpers
@@ -373,6 +383,24 @@ It defaults to a comma."
   "Colorize stock base on price."
   (let ((ended nil) pos beg end (color "red"))
     (goto-char (point-min))
+    ; colorize timestamp
+    (re-search-forward "%current-time%" nil 'move)
+    (let ((ov (make-overlay (- (point) (length "%current-time%")) (point))))
+      (overlay-put ov 'display (current-time-string))
+      (overlay-put ov 'face '(:foreground "green"))
+      (overlay-put ov 'intangible t))
+    ; colorize refresh state
+    (re-search-forward "%refresh-state%" nil 'move)
+    (let ((ov (make-overlay (- (point) (length "%refresh-state%")) (point))))
+      (if stock-tracker--refresh-timer
+          (progn
+            (overlay-put ov 'face '(:foreground "green"))
+            (overlay-put ov 'display "ON")
+            (overlay-put ov 'intangible t))
+        (overlay-put ov 'face '(:foreground "red"))
+        (overlay-put ov 'display "OFF")
+        (overlay-put ov 'intangible t)))
+    ; colorize table
     (while (not ended)
       (setq pos (next-single-property-change (point) 'stock-code)
             beg pos end beg
@@ -394,10 +422,11 @@ It defaults to a comma."
        (with-current-buffer (get-buffer-create stock-tracker--buffer-name)
          (let ((inhibit-read-only t)
                (origin (point)))
+           (setq stock-tracker--data stocks-info)
            (erase-buffer)
            (stock-tracker-mode)
            (font-lock-mode 1)
-           (insert (format "%s\n\n" (concat "* Refresh stocks at: [" (current-time-string) "]")))
+           (insert (format "%s\n\n" stock-tracker--header-string))
            (insert (format "%s\n\n" stock-tracker--note-string))
            (insert stock-tracker--result-header)
            (dolist (info stocks-info) (insert info))
@@ -574,14 +603,25 @@ It defaults to a comma."
   (when (eq major-mode 'stock-tracker-mode)
     (stock-tracker--cancel-timers)))
 
+(defun stock-tracker-stop-refresh ()
+  "Stop refreshing stocks."
+  (interactive)
+  (when (and stock-tracker--data stock-tracker--refresh-timer)
+    (with-current-buffer stock-tracker--buffer-name
+      (read-only-mode -1)
+      (cancel-timer stock-tracker--refresh-timer)
+      (setq stock-tracker--refresh-timer nil)
+      (stock-tracker--refresh-content stock-tracker--data)
+      (read-only-mode 1))))
+
 ;;;###autoload
 (defun stock-tracker-start ()
   "Start stock-tracker, show result in `stock-tracker--buffer-name' buffer."
   (interactive)
   (when stock-tracker-list-of-stocks
-    (stock-tracker--refresh)
     (stock-tracker--cancel-timers)
     (stock-tracker--run-timers)
+    (stock-tracker--refresh)
     (unless (get-buffer-window stock-tracker--buffer-name)
       (switch-to-buffer-other-window stock-tracker--buffer-name))))
 
@@ -645,6 +685,7 @@ It defaults to a comma."
     (define-key map (kbd "a") 'stock-tracker-add-stock)
     (define-key map (kbd "d") 'stock-tracker-remove-stock)
     (define-key map (kbd "g") 'stock-tracker-start)
+    (define-key map (kbd "s") 'stock-tracker-stop-refresh)
     map)
   "Keymap for `stock-tracker' major mode.")
 
