@@ -3,7 +3,7 @@
 ;; Copyright (C) 2019-2022 Huming Chen
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
-;; URL: https://github.com/beacoder/stock-tracker
+;; Package-Commit: 11d59a46ee4dca7cb546a62a0850586114a68b23
 ;; Version: 0.1.6
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
@@ -177,7 +177,7 @@
   "Buffer name for error report when fail to read server response.")
 
 (defconst stock-tracker--header-string
-  "* Refresh stocks at: [ %current-time% ] auto-refreshing is: [ %refresh-state% ]"
+  "* Stocks refreshed at: [ %current-time% ] auto-refreshing is: [ %refresh-state% ]"
   "Stock-Tracker header string.")
 
 (defconst stock-tracker--note-string
@@ -434,7 +434,8 @@ It defaults to a comma."
            (dolist (info stocks-info) (insert info))
            ;; (insert "|-\n")
            (stock-tracker--align-colorize-tables)
-           (goto-char origin)))))
+           (goto-char origin)
+           (set-buffer-modified-p nil)))))
 
 (defun stock-tracker--refresh-async (chn-stocks  us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
@@ -610,11 +611,11 @@ It defaults to a comma."
   (interactive)
   (when (and stock-tracker--data stock-tracker--refresh-timer)
     (with-current-buffer stock-tracker--buffer-name
-      (read-only-mode -1)
-      (cancel-timer stock-tracker--refresh-timer)
-      (setq stock-tracker--refresh-timer nil)
-      (stock-tracker--refresh-content stock-tracker--data)
-      (read-only-mode 1))))
+      (let ((inhibit-read-only t))
+        (cancel-timer stock-tracker--refresh-timer)
+        (setq stock-tracker--refresh-timer nil)
+        (stock-tracker--refresh-content stock-tracker--data)
+        (set-buffer-modified-p nil)))))
 
 ;;;###autoload
 (defun stock-tracker-start ()
@@ -645,21 +646,22 @@ It defaults to a comma."
                  (stock-tracker--format-response (stock-tracker--request-synchronously stock tag) tag))
                 (success (not (string= "" recved-stocks-info))))
       (with-current-buffer stock-tracker--buffer-name
-        (read-only-mode -1)
-        (goto-char (point-max))
-        (insert recved-stocks-info)
-        (stock-tracker--align-colorize-tables)
-        (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
-        (push stock stock-tracker-list-of-stocks)
-        (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
-        (read-only-mode 1)))))
+        (let ((inhibit-read-only t))
+          (goto-char (point-max))
+          (insert recved-stocks-info)
+          (stock-tracker--align-colorize-tables)
+          (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
+          (push stock stock-tracker-list-of-stocks)
+          (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
+          (set-buffer-modified-p nil))))))
 
 (defun stock-tracker-remove-stock ()
   "Remove STOCK from table."
   (interactive)
   (save-mark-and-excursion
     (with-current-buffer stock-tracker--buffer-name
-      (let ((list-of-stocks stock-tracker-list-of-stocks)
+      (let ((inhibit-read-only t)
+            (list-of-stocks stock-tracker-list-of-stocks)
             code tmp-stocks)
         (beginning-of-line)
         (when-let (stock-code (text-property-search-forward 'stock-code))
@@ -668,12 +670,11 @@ It defaults to a comma."
               (push code tmp-stocks)))
           (when tmp-stocks
             (setq stock-tracker-list-of-stocks (reverse tmp-stocks))
-            (read-only-mode -1)
             (org-table-kill-row)
             (re-search-backward "|-" nil 'move)
             (org-table-kill-row)
             (stock-tracker--align-colorize-tables)
-            (read-only-mode 1)))))))
+            (set-buffer-modified-p nil)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode
