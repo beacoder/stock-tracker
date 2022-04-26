@@ -60,6 +60,7 @@
 (require 'subr-x)
 (require 'text-property-search)
 (require 'url)
+(require 'which-func)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customizable
@@ -425,6 +426,7 @@ It defaults to a comma."
            (setq stock-tracker--data stocks-info)
            (erase-buffer)
            (stock-tracker-mode)
+           (which-function-mode -1)
            (font-lock-mode 1)
            (insert (format "%s\n\n" stock-tracker--header-string))
            (insert (format "%s\n\n" stock-tracker--note-string))
