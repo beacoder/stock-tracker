@@ -177,7 +177,7 @@
   "Buffer name for error report when fail to read server response.")
 
 (defconst stock-tracker--header-string
-  "* Refresh stocks at: [ %current-time% ], refresh is: [ %refresh-state% ]"
+  "* Refresh stocks at: [ %current-time% ] auto-refreshing is: [ %refresh-state% ]"
   "Stock-Tracker header string.")
 
 (defconst stock-tracker--note-string
