@@ -396,11 +396,10 @@ It defaults to a comma."
       (if stock-tracker--refresh-timer
           (progn
             (overlay-put ov 'face '(:foreground "green"))
-            (overlay-put ov 'display "ON")
-            (overlay-put ov 'intangible t))
+            (overlay-put ov 'display "ON"))
         (overlay-put ov 'face '(:foreground "red"))
-        (overlay-put ov 'display "OFF")
-        (overlay-put ov 'intangible t)))
+        (overlay-put ov 'display "OFF"))
+      (overlay-put ov 'intangible t))
     ; colorize table
     (while (not ended)
       (setq pos (next-single-property-change (point) 'stock-code)
