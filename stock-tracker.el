@@ -48,6 +48,7 @@
 ;;       Disable logging by default
 ;; 0.1.6 Add stock-tracker-stop-refresh
 ;;       Add refresh state
+;;       Add stock-tracker-up-red-down-green to config color
 
 ;;; Code:
 
