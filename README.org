@@ -26,7 +26,10 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 #+BEGIN_SRC emacs-lisp
 
 ;; Refresh stock price every 5*10 secs
-(setq stock-tracker-refresh-interval 5)
+(customize-set-variable 'stock-tracker-refresh-interval 5)
+
+;; Set up as green, down as red
+(customize-set-variable 'stock-tracker-up-red-down-green nil)
 
 ;; Customize stocks
 (customize-set-variable 'stock-tracker-list-of-stocks
