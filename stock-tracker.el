@@ -91,6 +91,11 @@
   :type 'boolean
   :group 'stock-tracker)
 
+(defcustom stock-tracker-up-red-down-green t
+  "Display up as red, down as green, set nil to reverse this."
+  :type 'boolean
+  :group 'stock-tracker)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -339,7 +344,9 @@ It defaults to a comma."
     (and (stringp updown)    (setq updown (string-to-number updown)))
 
     ;; color setting
-    (if (> updown 0) (setq color "red") (setq color "green"))
+    (if stock-tracker-up-red-down-green
+        (if (> updown 0) (setq color "red") (setq color "green"))
+      (if (> updown 0) (setq color "green") (setq color "red")))
 
     ;; some extra handling
     (and (cl-typep tag 'stock-tracker--chn-symbol) (setq percent (* 100 percent)))
