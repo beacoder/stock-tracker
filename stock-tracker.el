@@ -390,7 +390,7 @@ It defaults to a comma."
 
 (defun stock-tracker--colorize-content ()
   "Colorize stock base on price."
-  (let ((ended nil) pos beg end (color "red"))
+  (let (ended pos beg end (color "red"))
     (goto-char (point-min))
     ; colorize timestamp
     (re-search-forward "%current-time%" nil 'move)
