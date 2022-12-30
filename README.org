@@ -7,8 +7,8 @@
 
 =stock-tracker= is a simple interface for Emacs to track stocks in china and us markets.
 
-china stock api: [[https://money.163.com/stock/][Netease Stock (网易股票)]]\\
-us    stock api: [[https://quote.cnbc.com/quote-html-webservice/quoteform.htm][CNBC]]
+CHINA stock api: [[https://money.163.com/stock/][Netease Stock (网易股票)]]\\
+US    stock api: [[https://quote.cnbc.com/quote-html-webservice/quote.htm?partnerId=2&requestMethod=quick&exthrs=1&noform=1&fund=1&extendedMask=2&output=json&symbols=GOOG][CNBC]]
 
 ** Installation
 
