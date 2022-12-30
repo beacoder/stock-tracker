@@ -720,10 +720,4 @@ It defaults to a comma."
 
 
 (provide 'stock-tracker)
-
-;; Local Variables:
-;; coding: utf-8
-;; indent-tabs-mode: nil
-;; End:
-
 ;;; stock-tracker.el ends here
