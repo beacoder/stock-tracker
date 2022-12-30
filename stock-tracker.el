@@ -4,8 +4,6 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Package-Version: 20220523.1424
-;; Package-Commit: 14fe70fcce24a045f34e42617432a2d830906b98
 ;; Version: 0.1.7
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
