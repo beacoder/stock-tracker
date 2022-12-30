@@ -4,7 +4,9 @@
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.6
+;; Package-Version: 20220523.1424
+;; Package-Commit: 14fe70fcce24a045f34e42617432a2d830906b98
+;; Version: 0.1.7
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -49,6 +51,8 @@
 ;; 0.1.6 Add stock-tracker-stop-refresh
 ;;       Add refresh state
 ;;       Add stock-tracker-up-red-down-green to config color
+;; 0.1.7 Fix US stock not working issue
+;;       Add test for both CHN and US stocks
 
 ;;; Code:
 
@@ -129,7 +133,7 @@
 (cl-defmethod stock-tracker--result-prefix ((s stock-tracker--us-symbol))
   "Stock-Tracker result prefix for S from US."
   (ignore s)
-  "{\"QuickQuoteResult\":{\"xmlns\":\"http://quote.cnbc.com/services/MultiQuote/2006\",\"QuickQuote\":")
+  "\\[")
 
 (cl-defgeneric stock-tracker--result-fields (object)
   "Stock-Tracker result fields based on OBJECT.")
@@ -192,7 +196,6 @@
 ** Delete  stock, use [ *d* ]
 ** Start refresh, use [ *g* ]
 ** Stop  refresh, use [ *s* ]
-
 ** Stocks listed in SH, prefix with [ *0* ], e.g: 0600000
 ** Stocks listed in SZ, prefix with [ *1* ], e.g: 1002024
 ** Stocks listed in US,                    e.g: GOOG")
@@ -299,7 +302,7 @@ It defaults to a comma."
 
 (defun stock-tracker--request-synchronously (stock tag)
   "Get STOCK data with TAG synchronously, return a list of JSON each as alist."
-  (let (jsons)
+  (let (jsons response)
     (ignore-errors
       (with-current-buffer
           (url-retrieve-synchronously
@@ -308,9 +311,8 @@ It defaults to a comma."
         (goto-char (point-min))
         (when (string-match "200 OK" (buffer-string))
           (re-search-forward (stock-tracker--result-prefix tag) nil 'move)
-          (setq
-           jsons
-           (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
+          (setq response (buffer-substring-no-properties (point) (point-max)))
+          (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response))))
         (kill-current-buffer)))
     jsons))
 
@@ -444,7 +446,7 @@ It defaults to a comma."
            (goto-char origin)
            (set-buffer-modified-p nil)))))
 
-(defun stock-tracker--refresh-async (chn-stocks  us-stocks)
+(defun stock-tracker--refresh-async (chn-stocks us-stocks)
   "Refresh list of stocks namely CHN-STOCKS and US-STOCKS."
   (let* ((chn-stocks-string (mapconcat #'identity chn-stocks ","))
          (us-stocks-string (mapconcat #'identity us-stocks ","))
@@ -479,12 +481,11 @@ It defaults to a comma."
         (defun stock-tracker--subprocess-result-prefix (string-tag)
           "Stock data result prefix."
           (if (equal string-tag "chn-stock")
-              "_ntes_quote_callback("
-            "{\"QuickQuoteResult\":{\"xmlns\":\"http://quote.cnbc.com/services/MultiQuote/2006\",\"QuickQuote\":"))
+              "_ntes_quote_callback(" "\\["))
 
         (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
           "Get stock data synchronously, return a list of JSON each as alist."
-          (let (jsons)
+          (let (jsons response)
             (ignore-errors
               (with-current-buffer
                   (url-retrieve-synchronously
@@ -493,9 +494,8 @@ It defaults to a comma."
                 (goto-char (point-min))
                 (when (string-match "200 OK" (buffer-string))
                   (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
-                  (setq
-                   jsons
-                   (json-read-from-string (buffer-substring-no-properties (point) (point-max)))))
+                  (setq response (buffer-substring-no-properties (point) (point-max)))
+                  (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response))))
                 (kill-current-buffer)))
             jsons))
 
@@ -711,6 +711,14 @@ It defaults to a comma."
         (add-to-list 'desktop-globals-to-save 'stock-tracker-list-of-stocks))
   (add-hook 'kill-buffer-hook #'stock-tracker--cancel-timer-on-exit)
   (run-mode-hooks))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(cl-assert (stock-tracker--request-synchronously "0600000" (make-stock-tracker--chn-symbol)))
+(cl-assert (stock-tracker--request-synchronously "1002024" (make-stock-tracker--chn-symbol)))
+(cl-assert (stock-tracker--request-synchronously "GOOG" (make-stock-tracker--us-symbol)))
 
 
 (provide 'stock-tracker)
