@@ -489,7 +489,12 @@ It defaults to a comma."
 
         (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
           "Get stock data synchronously, return a list of JSON each as alist."
-          (let (jsons response)
+          (let* ((inhibit-message t)
+                 (message-log-max nil)
+                 (url-request-method "GET")
+                 (url-request-extra-headers
+                  `(("Content-Type" . "application/json")))
+                 jsons response)
             (ignore-errors
               (with-current-buffer
                   (url-retrieve-synchronously
