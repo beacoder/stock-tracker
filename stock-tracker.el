@@ -51,7 +51,6 @@
 ;;       Add stock-tracker-up-red-down-green to config color
 ;; 0.1.7 Fix US stock not working issue
 ;;       Add test for both CHN and US stocks
-;; 0.1.8 Add url-request param setting
 
 ;;; Code:
 
@@ -301,12 +300,7 @@ It defaults to a comma."
 
 (defun stock-tracker--request-synchronously (stock tag)
   "Get STOCK data with TAG synchronously, return a list of JSON each as alist."
-  (let* ((inhibit-message t)
-         (message-log-max nil)
-         (url-request-method "GET")
-         (url-request-extra-headers
-          `(("Content-Type" . "application/json")))
-         jsons response)
+  (let (jsons response)
     (ignore-errors
       (with-current-buffer
           (url-retrieve-synchronously
@@ -489,12 +483,7 @@ It defaults to a comma."
 
         (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
           "Get stock data synchronously, return a list of JSON each as alist."
-          (let* ((inhibit-message t)
-                 (message-log-max nil)
-                 (url-request-method "GET")
-                 (url-request-extra-headers
-                  `(("Content-Type" . "application/json")))
-                 jsons response)
+          (let (jsons response)
             (ignore-errors
               (with-current-buffer
                   (url-retrieve-synchronously
