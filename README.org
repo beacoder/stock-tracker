@@ -75,6 +75,8 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 If you think the it's helpful for you, please consider paying a cup of coffee
 for me. Thank you! :smile:
 
+#+attr_html: :width 100px
+#+attr_latex: :width 100px
 [[WeChatQR.jpg.png][file:WeChatQR.jpg]]
 
 @@html:<a href="https://www.buymeacoffee.com/s9giES1" target="_blank">@@
