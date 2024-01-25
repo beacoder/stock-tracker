@@ -68,15 +68,13 @@ Install =stock-tracker= from [[http://melpa.org/][MELPA]] with:
 
 ** License
 
-[[file:LICENSE][MIT LICENSE]]. Copyright (c) 2019-2023 Huming Chen <chenhuming@gmail.com>
+[[file:LICENSE][MIT LICENSE]]. Copyright (c) 2019-2024 Huming Chen <chenhuming@gmail.com>
 
 ** Donate
 
-If you think the it's helpful for you, please consider paying a cup of coffee
+If you think that it's helpful for you, please consider paying a cup of coffee
 for me. Thank you! :smile:
 
-#+ATTR_HTML: :width 300
-#+ATTR_ORG: :width 300
 [[file:WeChatQR.jpg]]
 
 @@html:<a href="https://www.buymeacoffee.com/s9giES1" target="_blank">@@
