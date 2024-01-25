@@ -77,7 +77,6 @@ for me. Thank you! :smile:
 
 [[WeChatQR.jpg.png][file:WeChatQR.jpg]]
 
-@@html:<a href="https://www.buymeacoffee.com/s9giES1" target="_blank">
-<img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee"
-width="160"/>
-</a>@@
+@@html:<a href="https://www.buymeacoffee.com/s9giES1" target="_blank">@@
+@@html:<img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" width="160"/>@@
+@@html:</a>@@
