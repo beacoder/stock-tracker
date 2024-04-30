@@ -1,0 +1,6 @@
+[alias]
+  …
+  stage = add
+  stagex = add --chmod=+x
+  unstage = restore --staged
+  setmodx = update-index --chmod=+x
