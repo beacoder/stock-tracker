@@ -1,10 +1,10 @@
 ;;; stock-tracker.el --- Track stock price -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2023 Huming Chen
+;; Copyright (C) 2019-2024 Huming Chen
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.7
+;; Version: 0.1.8
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
