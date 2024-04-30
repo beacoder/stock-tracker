@@ -24,7 +24,7 @@ jobs:
           - 29.3
           - snapshot
     steps:
-    - uses: beacoder/setup-emacs@master
+    - uses: purcell/setup-emacs@master
       with:
         version: ${{ matrix.emacs_version }}
 
