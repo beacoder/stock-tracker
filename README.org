@@ -1,6 +1,7 @@
 * Track stock price in Emacs
 
 [[MIT licensed][file:https://img.shields.io/badge/license-MIT-blue.svg]]
+[[Build Status][file:https://github.com/beacoder/stock-tracker/workflows/CI/badge.svg]]
 [[http://melpa.org/#/stock-tracker][file:http://melpa.org/packages/stock-tracker-badge.svg]]
 [[https://stable.melpa.org/#/stock-tracker][file:https://stable.melpa.org/packages/stock-tracker-badge.svg]]
 [[996.icu][file:https://img.shields.io/badge/link-996.icu-red.svg]]
