@@ -52,6 +52,7 @@
 ;; 0.1.7 Fix US stock not working issue
 ;;       Add test for both CHN and US stocks
 ;; 0.1.8 Disable test for CHN stocks due to API not working
+;; 0.1.9 Fix wrong stock order issue during auto-refreshing
 
 ;;; Code:
 
@@ -261,8 +262,8 @@ It defaults to a comma."
   (let ((us-stocks nil))
     (dolist (stock stocks)
       (when (zerop (string-to-number stock))
-        (push stock us-stocks)))
-    (setq us-stocks (reverse us-stocks))))
+        (setq us-stocks (append us-stocks (list stock)))))
+    us-stocks))
 
 (defun stock-tracker--get-chn-stocks (stocks)
   "Separate chn stock from us stock with `STOCKS'."
@@ -523,8 +524,7 @@ It defaults to a comma."
           ;; fetch us stocks
           (unless (string-empty-p subprocess-us-stocks-string)
             (dolist (us-stock (split-string subprocess-us-stocks-string ","))
-              (push
-               (stock-tracker--subprocess-request-synchronously us-stock "us-stock") us-result))
+              (setq us-result (append us-result (list (stock-tracker--subprocess-request-synchronously us-stock "us-stock")))))
             (when us-result (map-put! result 'us-stock us-result)))
 
           result))
@@ -546,18 +546,18 @@ It defaults to a comma."
 
            ;; format chn stocks
            (unless (numberp chn-result)
-             (push (stock-tracker--format-response chn-result chn-symbol t)
-                   all-collected-stocks-info))
+             (setq all-collected-stocks-info
+                   (append all-collected-stocks-info (list (stock-tracker--format-response chn-result chn-symbol t)))))
 
            ;; format us stocks
            (unless (numberp us-result)
              (dolist (us-stock us-result)
-               (push (stock-tracker--format-response us-stock us-symbol t)
-                     all-collected-stocks-info)))
+               (setq all-collected-stocks-info
+                     (append all-collected-stocks-info (list (stock-tracker--format-response us-stock us-symbol t))))))
 
            ;; populate stocks
            (when all-collected-stocks-info
-             (stock-tracker--refresh-content (reverse all-collected-stocks-info)))))))))
+             (stock-tracker--refresh-content all-collected-stocks-info))))))))
 
 (defun stock-tracker--refresh (&optional asynchronously)
   "Refresh list of stocks ASYNCHRONOUSLY or not."
@@ -653,9 +653,7 @@ It defaults to a comma."
           (goto-char (point-max))
           (insert recved-stocks-info)
           (stock-tracker--align-colorize-tables)
-          (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
-          (push stock stock-tracker-list-of-stocks)
-          (setq stock-tracker-list-of-stocks (reverse stock-tracker-list-of-stocks))
+          (setq stock-tracker-list-of-stocks (append stock-tracker-list-of-stocks (list stock)))
           (set-buffer-modified-p nil))))))
 
 (defun stock-tracker-remove-stock ()
