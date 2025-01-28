@@ -52,7 +52,7 @@
 ;; 0.1.7 Fix US stock not working issue
 ;;       Add test for both CHN and US stocks
 ;; 0.1.8 Disable test for CHN stocks due to API not working
-;; 0.1.9 Fix wrong stock order issue during auto-refreshing
+;; 0.1.9 Fix wrong stock order issue for us-stocks during auto-refreshing
 
 ;;; Code:
 
