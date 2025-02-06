@@ -574,7 +574,7 @@ It defaults to a comma."
           (stock-tracker--refresh-async chn-stocks us-stocks)
         ;; synchronously
         (with-temp-message "Fetching stock data ..."
-          (unless (string= chn-stocks-string "")
+          (unless (string-empty-p chn-stocks-string)
             (push
              (stock-tracker--format-response (stock-tracker--request-synchronously chn-stocks-string chn-symbol) chn-symbol)
              all-collected-stocks-info))
