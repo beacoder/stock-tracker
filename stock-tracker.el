@@ -1,10 +1,10 @@
 ;;; stock-tracker.el --- Track stock price -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2025 Huming Chen
+;; Copyright (C) 2019-2026 Huming Chen
 
 ;; Author: Huming Chen <chenhuming@gmail.com>
 ;; URL: https://github.com/beacoder/stock-tracker
-;; Version: 0.1.8
+;; Version: 0.2.0
 ;; Created: 2019-08-18
 ;; Keywords: convenience, stock, finance
 ;; Package-Requires: ((emacs "27.1") (dash "2.16.0") (async "1.9.5"))
@@ -53,6 +53,7 @@
 ;;       Add test for both CHN and US stocks
 ;; 0.1.8 Disable test for CHN stocks due to API not working
 ;; 0.1.9 Fix wrong stock order issue for us-stocks during auto-refreshing
+;; 0.2.0 Add curl support, and default to use curl, fallback to url
 
 ;;; Code:
 
@@ -99,6 +100,26 @@
 (defcustom stock-tracker-up-red-down-green t
   "Display up as red, down as green, set nil to reverse this."
   :type 'boolean
+  :group 'stock-tracker)
+
+(defcustom stock-tracker-fetch-backend 'curl
+  "Backend used for HTTP requests.
+When set to 'url, use `url-retrieve-synchronously'.
+When set to 'curl, use the curl command-line tool.
+When set to 'auto, use curl if available, otherwise fall back to url."
+  :type '(choice (const :tag "url-retrieve-synchronously" url)
+                 (const :tag "curl" curl)
+                 (const :tag "auto-detect" auto))
+  :group 'stock-tracker)
+
+(defcustom stock-tracker-curl-program "curl"
+  "Name or path of the curl executable."
+  :type 'string
+  :group 'stock-tracker)
+
+(defcustom stock-tracker-curl-timeout 10
+  "Timeout in seconds for curl requests."
+  :type 'integer
   :group 'stock-tracker)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -300,20 +321,67 @@ It defaults to a comma."
 ;; Core Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun stock-tracker--effective-backend ()
+  "Return the effective fetch backend, resolving 'auto to curl or url."
+  (cond
+   ((eq stock-tracker-fetch-backend 'curl) 'curl)
+   ((eq stock-tracker-fetch-backend 'url) 'url)
+   (t
+    (if (executable-find stock-tracker-curl-program) 'curl 'url))))
+
+(defun stock-tracker--fetch-url (url)
+  "Fetch URL using `url-retrieve-synchronously'.
+Return the response body as a string, or nil on failure."
+  (ignore-errors
+    (with-current-buffer
+        (url-retrieve-synchronously url t nil 5)
+      (set-buffer-multibyte t)
+      (goto-char (point-min))
+      (let (body)
+        (when (string-match "200 OK" (buffer-string))
+          ;; Skip HTTP headers
+          (re-search-forward "\n\n" nil t)
+          (setq body (buffer-substring-no-properties (point) (point-max))))
+        (kill-current-buffer)
+        body))))
+
+(defun stock-tracker--fetch-curl (url)
+  "Fetch URL using the curl command-line tool.
+Return the response body as a string, or nil on failure."
+  (ignore-errors
+    (with-temp-buffer
+      (let* ((args (list "--silent" "--show-error"
+                         "--max-time" (number-to-string stock-tracker-curl-timeout)
+                         "--location"
+                         "-H" "User-Agent: Mozilla/5.0"
+                         url))
+             (status (apply #'call-process stock-tracker-curl-program nil t nil args)))
+        (if (and (numberp status) (zerop status))
+            (buffer-string)
+          nil)))))
+
+(defun stock-tracker--fetch (url)
+  "Fetch URL and return the response body as a string, or nil on failure.
+Uses the backend specified by `stock-tracker-fetch-backend'."
+  (let ((backend (stock-tracker--effective-backend)))
+    (if (eq backend 'curl)
+        (or (stock-tracker--fetch-curl url)
+            (stock-tracker--fetch-url url))
+      (stock-tracker--fetch-url url))))
+
 (defun stock-tracker--request-synchronously (stock tag)
   "Get STOCK data with TAG synchronously, return a list of JSON each as alist."
   (let* (jsons response)
     (ignore-errors
-      (with-current-buffer
-          (url-retrieve-synchronously
-           (format (stock-tracker--api-url tag) (url-hexify-string stock)) t nil 5)
-        (set-buffer-multibyte t)
-        (goto-char (point-min))
-        (when (string-match "200 OK" (buffer-string))
-          (re-search-forward (stock-tracker--result-prefix tag) nil 'move)
-          (setq response (buffer-substring-no-properties (point) (point-max)))
-          (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response))))
-        (kill-current-buffer)))
+      (let ((body (stock-tracker--fetch
+                   (format (stock-tracker--api-url tag) (url-hexify-string stock)))))
+        (when body
+          (with-temp-buffer
+            (insert body)
+            (goto-char (point-min))
+            (re-search-forward (stock-tracker--result-prefix tag) nil 'move)
+            (setq response (buffer-substring-no-properties (point) (point-max)))
+            (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response)))))))
     jsons))
 
 (defun stock-tracker--format-json (json tag)
@@ -465,11 +533,15 @@ It defaults to a comma."
         ;; libraries
         (require 'subr-x)
         (require 'url)
+        (require 'json)
 
         ;; pass params to subprocess, use literal (string, integer, float) here
         (setq subprocess-chn-stocks-string ,chn-stocks-string
               subprocess-us-stocks-string ,us-stocks-string
-              subprocess-kill-delay ,stock-tracker-subprocess-kill-delay)
+              subprocess-kill-delay ,stock-tracker-subprocess-kill-delay
+              subprocess-fetch-backend ',(stock-tracker--effective-backend)
+              subprocess-curl-program ,stock-tracker-curl-program
+              subprocess-curl-timeout ,stock-tracker-curl-timeout)
 
         ;; mininum required functions in subprocess
         (defun stock-tracker--subprocess-api-url (string-tag)
@@ -483,20 +555,54 @@ It defaults to a comma."
           (if (equal string-tag "chn-stock")
               "_ntes_quote_callback(" "\\["))
 
+        (defun stock-tracker--subprocess-fetch-url (url)
+          "Fetch URL using `url-retrieve-synchronously'."
+          (ignore-errors
+            (with-current-buffer
+                (url-retrieve-synchronously url t nil 5)
+              (set-buffer-multibyte t)
+              (goto-char (point-min))
+              (let (body)
+                (when (string-match "200 OK" (buffer-string))
+                  (re-search-forward "\n\n" nil t)
+                  (setq body (buffer-substring-no-properties (point) (point-max))))
+                (kill-current-buffer)
+                body))))
+
+        (defun stock-tracker--subprocess-fetch-curl (url)
+          "Fetch URL using curl."
+          (ignore-errors
+            (with-temp-buffer
+              (let* ((args (list "--silent" "--show-error"
+                                 "--max-time" (number-to-string subprocess-curl-timeout)
+                                 "--location"
+                                 "-H" "User-Agent: Mozilla/5.0"
+                                 url))
+                     (status (apply #'call-process subprocess-curl-program nil t nil args)))
+                (if (and (numberp status) (zerop status))
+                    (buffer-string)
+                  nil)))))
+
+        (defun stock-tracker--subprocess-fetch (url)
+          "Fetch URL using the configured backend."
+          (if (eq subprocess-fetch-backend 'curl)
+              (or (stock-tracker--subprocess-fetch-curl url)
+                  (stock-tracker--subprocess-fetch-url url))
+            (stock-tracker--subprocess-fetch-url url)))
+
         (defun stock-tracker--subprocess-request-synchronously (stock string-tag)
           "Get stock data synchronously, return a list of JSON each as alist."
           (let* (jsons response)
             (ignore-errors
-              (with-current-buffer
-                  (url-retrieve-synchronously
-                   (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)) t nil 5)
-                (set-buffer-multibyte t)
-                (goto-char (point-min))
-                (when (string-match "200 OK" (buffer-string))
-                  (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
-                  (setq response (buffer-substring-no-properties (point) (point-max)))
-                  (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response))))
-                (kill-current-buffer)))
+              (let ((body (stock-tracker--subprocess-fetch
+                           (format (stock-tracker--subprocess-api-url string-tag) (url-hexify-string stock)))))
+                (when body
+                  (with-temp-buffer
+                    (insert body)
+                    (goto-char (point-min))
+                    (re-search-forward (stock-tracker--subprocess-result-prefix string-tag) nil 'move)
+                    (setq response (buffer-substring-no-properties (point) (point-max)))
+                    (setq jsons (json-read-from-string (replace-regexp-in-string "[\\[\\]]" "" response)))))))
             jsons))
 
         ;; make sure subprocess can exit successfully
