@@ -23,6 +23,6 @@ compile: clean-elc
 	${EMACS} -Q --eval $(subst PACKAGES,${DEPS},${INIT_PACKAGES}) -L . -batch -f batch-byte-compile *.el
 
 clean-elc:
-	rm -f f.elc
+	rm -f *.elc
 
 .PHONY:	all compile clean-elc package-lint
